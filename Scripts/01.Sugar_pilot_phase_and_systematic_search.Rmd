@@ -1,0 +1,86 @@
+---
+title: "Sugar pilot phase"
+author: "Christina Raw"
+date: "18/11/2021"
+output: html_document
+---
+
+Following my conversation with Andy Purvis on the 18/11/2021 , I proceed to perform a small pilot phase to decide  whether it is best to go crop by crop or to do the crops within a broader commodity type. The commodity crops that result from the top 15 cops farmed globally in 2019 data set are: legumes (common beans and peanuts), oil seeds (palm oil vs. other oil sources), sugar (sugar cane and beat sugar, although beat does is not included in the top 15 crops), and cereals. 
+
+I will start doing the small pilot phase with the sugar commodity because it is of interest to both regulators and importers for various reasons: it is a high-value crop, it has been excluded from the EU imports ban, and there is a public health reason for possible tax on it.
+
+## 1. Protocol
+
+I wrote an unfinished systematic meta-review protocol that can be found in PREDICTS for business > Christina's work > Systematic Review Protocol
+
+## 2. Development of a search strategy
+
+I developed a list of relevant terms that cover terminology on biodiversity (e.g., bird, insect, richness), crop (in this sugar-specific), farming systems (e.g., conventional, agroecological) and syntheses (e.g., review, meta-analysis). I obtained the final list of search terms using SCOPUS search engine, through an iterative process of inclusion/exclusion of terms where in each iteration I droped those terms whose inclusion returns a higher proportion of irrelevant hits.
+
+The development of the optimal string of search terms is documented in PREDICTS for business > Christina's work > Scope phase > String_search_terms_sugar.
+
+**Final string of search terms for sugar**
+
+(sugarcane  OR  beet  OR  sugarbeet) AND (production  OR  {production system* }) AND (biodiversity  OR  richness  OR  abundance  OR  diversity  OR  ecosystem) AND ("metavanalysis"  OR  {meta analysis}  OR  review) AND (comprar*  OR  contrast*  OR  diferenc*  OR  effect  OR  influ*  OR  impact ) AND (traditional  OR  manual  OR  mechan*  OR  burn*  OR  vertical*  OR  "production system"  OR  {farming system}  OR  crop*  OR  farm*  OR  production  OR  system*  OR  conventional  OR  divers*  OR  sustainable  OR  ecological  OR  organic  OR  intens*  OR  extens*  OR  abandoned  OR  plough*  OR  fallow  OR  biotic  OR  hedgerow*  OR  polycultur*  OR  strip*  OR  mixed  OR  land*  OR  tillage  OR  land*  OR  "natural habitat* "  OR  "set?aside* "  OR  mosaic*)
+
+After Andy’s comment on the  $23^{rd}$ of November of 2021 I removed the second part of the string of terms as it can limit the output to only papers that mention production. After his comments, the final string of terms looks like this:
+
+( TITLE-ABS-KEY ( sugarcane  OR  beet  OR  sugarbeet ) AND  TITLE-ABS-KEY ( "meta-nalysis"  OR  {meta analysis}  OR  review )  AND  TITLE-ABS-KEY ( biodiversity  OR  richness  OR  abundance  OR  diversity  OR  ecosystem )  AND  TITLE-ABS-KEY ( compar*  OR  contrast*  OR  differenc*  OR  effect* OR affect*  OR  influ*  OR  impact )  AND  TITLE-ABS-KEY ( traditional  OR  manual  OR  mechan*  OR  burn*  OR  vertical*  OR  "production system"  OR  {farming system}  OR  crop*  OR  farm*  OR  production  OR  system*  OR  conventional  OR  divers*  OR  sustainable  OR  ecological  OR  organic  OR  intens*  OR  extens*  OR  abandon*  OR  plough*  OR  fallow  OR  biotic  OR  hedgerow*  OR  polycultur*  OR  strip*  OR  mixed  OR  land*  OR  tillage    OR  "natural habitat* "  OR  "set?aside* "  OR  mosaic* ) )
+
+**Conclusion**
+
+  - When searching for documents in a data base, it is better to use the names of the crops (*sugar beet, sugarcane*) rather than the name of the commodity because the commodity term (*sugar*) is very broad and returns a high proportion of irrelevant hits.
+  - Most reviews and syntheses talk about impacts on biodiversity in categorical terms, e.g., increase / decrease of biodiversity. I might have to do the study with categorical data.
+  - Some reviews do not talk about impact on biodiversity, but impact on abiotic variables that we know impact biodiversity, such as GHG or water quality. Can I use these reviews?
+  
+
+## 3. Search 
+
+On the $24^{th}$  of November 2021, I systematically searched for relevant studies in Scopus and Web Of Science tailoring the string of search terms to match the search search engine's requirements. When using Scopus, I restrained the search to title, abstract and key words whereas when using WOS I searched through all fields.  
+
+*Tailored version of the string of search terms used in Scopus*
+
+( TITLE-ABS-KEY ( sugarcane  OR  beet  OR  sugarbeet )  AND  TITLE-ABS-KEY ( production  OR  {production system* } )  AND  TITLE-ABS-KEY ( "metavanalysis"  OR  {meta analysis}  OR  review )  AND  TITLE-ABS-KEY ( biodiversity  OR  richness  OR  abundance  OR  diversity  OR  ecosystem )  AND  TITLE-ABS-KEY ( comprar*  OR  contrast*  OR  diferenc*  OR  effect  OR  influ*  OR  impact )  AND  TITLE-ABS-KEY ( traditional  OR  manual  OR  mechan*  OR  burn*  OR  vertical*  OR  "production system"  OR  {farming system}  OR  crop*  OR  farm*  OR  production  OR  system*  OR  conventional  OR  divers*  OR  sustainable  OR  ecological  OR  organic  OR  intens*  OR  extens*  OR  abandoned  OR  plough*  OR  fallow  OR  biotic  OR  hedgerow*  OR  polycultur*  OR  strip*  OR  mixed  OR  land*  OR  tillage  OR  land*  OR  "natural habitat* "  OR  "set?aside* "  OR  mosaic* ) )
+
+*Tailored version of the string of search terms used in Web Of Science*
+
+sugarcane OR beet OR "sugar beet" (All Fields) and "meta-analysis" OR "meta analysis" OR review (All Fields) and biodiversity OR richness OR abundance OR diversity OR ecosystem (All Fields) and compar* OR contrast* OR differenc* OR effect* OR affect* OR influ* OR impact (All Fields) and traditional OR manual OR mechan* OR burn* OR vertical* OR "production system" OR "farming system" OR crop* OR farm* OR production OR system* OR conventional OR divers* OR sustainable OR ecological OR organic OR intens* OR extens* OR abandon* OR plough* OR fallow OR biotic OR hedgerow* OR polycultur* OR strip* OR mixed OR land* OR tillage OR "natural habitat* " OR "set?aside* " OR mosaic* (All Fields) and Review Articles (Document Types)
+
+I filtered the results to show only review articles.
+
+
+## 4. Screen articles for relevance
+
+The systematic search returned 33 documents. I conducted a first screen in which I scanned the title, abstract and keywords of the documents to look for those that matched the inclusion criteria described in the protocol. I created to reference libraries, one that contained the obviously irrelevant documents, and one that contained the documents to be assessed for eligibility. Then, I conducted a full text screen of the potentially relevant documents to assess whether they matched the inclusion criteria. 
+
+
+  - List of included papers: PREDICTS for business > Christina's work > NHM R Project > Outputs > Screening > Sugar > Excel_sugar_included
+  
+  - List of excluded papers with exclusion reason: PREDICTS for business > Christina's work > NHM R Project > Outputs > Screening > Sugar > Excel_sugar_excluded
+
+**Conclusions**
+
+  - There are not many syntheses that talk about the impact of sugar production systems on biodiversity. The syntheses that I have found talk about impact in qualitative terms, which might be useful if we know whether a particular system tends to be better or tends to be worse than another system for which we have quantitative data.
+
+  - I will search using Spanish terms in two circumstances: a - when English searches don't find syntheses; or b - when Latin America is a major center of production but not represented in the English-language syntheses. However, I will first perform the whole study in English, before switching to Spanish. 
+
+## 5. Critical appraisal
+
+I will develop the critical appraisal protocol once I have a pool of included studies.
+
+## 6. Data extraction 
+
+I will record all the data in a spreadsheet specifically coded for this meta-review and piloted using 20 studies randomly sampled from the pool of included studies. I will assign each study to a unique study ID, recorded in the spreadsheet. Multiple comparisons included in the same study will be recorded in different rows, assigned to the same study ID.
+
+
+### Information that might be useful 
+
+![alt text here](Images/Captura.PNG)
+[FAO Chapter 5. Sugar](https://www.fao.org/3/CA4076EN/CA4076EN_Chapter5_Sugar.pdf)
+
+
+[Cardoso](https://www.sciencedirect.com/science/article/abs/pii/S0961953418302848)
+
+
+
+
