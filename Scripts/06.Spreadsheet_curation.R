@@ -24,20 +24,26 @@ d <- d[,-(46:51)]  # Drop blank columns at the end
 d <- d[-c(591:616),] # Drop blank rows at the end
 
   
-      # 1. Make sure all names are well written
-
 names(d)
+
+  # Synthesis type
 
 unique(d$Synthesis_type)
 d$Synthesis_type[d$Synthesis_type == "Meta_Analysis"]<-"Meta-Analysis"
 
+  # Model
+
 unique(d$Model)
 d$Model[d$Model == "Mixed_effect"]<-"Fixed_effects"
+
+  # Commodity
 
 unique(d$Commodity)
 d$Commodity[d$Commodity == "Cereas"]<-"Cereals_grains"
 d$Commodity[d$Commodity == "Cereals_grains "]<-"Cereals_grains"
 d$Commodity[d$Commodity == "Cassava"]<-"Roots_tubers"
+
+  # Crop
 
 crop <- as.data.frame(unique(d$Crop))
 
@@ -66,6 +72,8 @@ d$Crop[d$Crop == "Bt_oilseed_Rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "Bt_Oilseed_rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "GM_Oilseed_rape"]<-"GM_Rape"
 
+  # Kingdom
+
 names(d)
 king <- as.data.frame(unique(d$Kingdom))
 unique(d$Kingdom)
@@ -75,20 +83,30 @@ d$Kingdom[d$Kingdom == "Bacteria "]<- "Bacteria"
 d$Kingdom[d$Kingdom == "Microbe "]<- "Microbes"
 d$Kingdom[d$Kingdom == "Microbial"]<- "Microbes"
 d$Kingdom[d$Kingdom == "Microbe"]<- "Microbes"
+d$Kingdom[d$Kingdom == "Microbe"]<- "Microbes"
+
 
 which(is.na(d$Kingdom))
 
 which(d$Kingdom == "Actinomyceta")
-if(d$Kingdom == "Actinomyceta") {d}
+
+
+  # Control
 
 control <- as.data.frame(unique(d$Control))
 which(is.na(d$Control))
 
+  # Production system
+
 ps <- as.data.frame(unique(d$Production_system))            
 d$Production_system[d$Production_system == "Gm"]<- "GM"
-d$Production_system[d$Production_system == "Poluyculture"]<- "Policulture"
+d$Production_system[d$Production_system == "Polyculture"]<- "Policulture"
+
+  # Landuse
 
 unique(d$Landuse)
+
+  # Practice
 
 practice <- as.data.frame(unique(d$Practice))
 d$Practice[d$Practice == "Gm"]<- "GM"
@@ -96,13 +114,19 @@ d$Practice[d$Practice == "Poluyculture"]<- "Policulture"
 d$Practice[d$Practice == "Sraw_mulch"]<- "Straw_mulch"
 d$Practice[d$Practice == "Staw_romoval"]<- "Straw_removal"
 
+  # Cover crop
+
 names(d)
 unique(d$Cover_crop)
+
+  # Bt_type
 
 bt <- as.data.frame(unique(d$Bt_type))
 d$Bt_type[d$Bt_type == "Cy1Ac"]<- "Cry1Ac"                           
 d$Bt_type[d$Bt_type == "OC-1"]<- "OC1"
 d$Bt_type[d$Bt_type == "OC1 "]<- "OC1"
+
+  # Biodiversity measure
 
 bio <- as.data.frame(unique(d$Biodiversity_measure))
 d$Biodiversity_measure[d$Biodiversity_measure == "Acundance"]<- "Abundance"
@@ -136,6 +160,89 @@ d$SD <- as.numeric(d$SD)
 d$SE <- as.numeric(d$SE)
 d$Lower_CI <- as.numeric(d$Lower_CI)
 d$Upper_CI <- as.numeric(d$Upper_CI)
+
+
+# When I extracted the data I did not classify each practice into the broader 
+# agricultural production system categories (e.g., no-tillage is classified as 
+# conservation agriculture). Therefore, the columns 'production system' and practice
+# are almost the same. I am going to create a new column with the broad production 
+# system categories, and rename the existing columns the following way:
+#
+#   a. Practice -> Practice detail
+#   b. Production system -> Practice
+
+# 1. Create column of broad agricultural production system categories according to
+#    the document NHM > Writing > Agricultural practices
+
+          # a. Create data frame with the broad categories and specific practices 
+
+conventional <- data.frame(production_system = "conventional", 
+                           practice = c("Straw_removal", "Conventional",
+                                        "Intensified", "Tillage", "Monoculture",
+                                        "High_irrigation", "High_intensity",
+                                        "Straw_removal", "Consolidated", "Burning"))
+
+conservation <- data.frame(production_system = "conservation",
+                           practice = c("Straw_mulch", "Conservation",
+                                        "No_tillage", "Cover_crop_Reduced_tillage", 
+                                        "Sorghum_residue", "Maize_redisdue", "Cover_crop",
+                                        "High_vegetation_cover", "Fast_decomposing_legume_litter",
+                                        "Litter"))
+
+organic <- data.frame(production_system = "Organic", 
+                      practice = c("Organic", "Diversified"))
+
+transgenic <- data.frame(production_system = "Transgenic", 
+                         practice = c("Bt", "GM"))
+
+ipm <- data.frame(production_system = "ipm", 
+                  practice = c("Biocontrol"))
+
+mixed <- data.frame(production_system = "mixed", 
+                    practice = c("Policulture","Intercrop", "Rotation"))
+
+unclassified <- data.frame(production_system = "unclassified", 
+                           practice = c("Conservation_Polyculture", 
+                                        "Conservation_Rotation", 
+                                        "Non_consolidated", "Crayfish_coculture"))
+
+agricultural_categories <- rbind(conventional, conservation, organic, transgenic,
+                            ipm, mixed, unclassified)
+
+          # b. Add column in data_extraction_spreadsheet of the broad agricultural
+          # production systems according to the production_systems data frame just 
+          # created 
+
+
+d$agricultural_system <- ""
+
+
+for (i in (1:558)){
+  #browser()
+  for (j in (1:32)){
+    if (d$Production_system[i] == agricultural_categories$practice[j]){
+      d$agricultural_system[i] <- agricultural_categories$production_system[j]
+    }}}
+
+
+# 2. Rename the existing columns the following way:
+
+           # a. Practice -> Practice detail
+
+
+colnames(d)[28] <- "Practice_detail"
+
+           # b. Production system -> Practice
+
+colnames(d)[26] <- "Practice"
+
+
+
+# 3. Reorder columns 
+
+library(dplyr)
+
+d <- relocate(d, agricultural_system, Practice, Practice_detail, .after = Landuse )
 
 # Save the data set in processed data folder
 
@@ -231,7 +338,7 @@ which(is.na(d$Biodiversity_measure))
 d$Biodiversity_measure[30] <- "Effect"
 d$Biodiversity_measure[32] <- "Effect"
 
-write.csv(d, "Data/01.Processed_Data/03.Curated_spreadsheet/Csc_Crops_Qualitative_spreadsheet.csv")
+write.csv(d, "Data/01.Processed_Data/03.Curated_spreadsheet/Csv_Crops_Qualitative_spreadsheet.csv")
 write_xlsx(d, "Data/01.Processed_Data/03.Curated_spreadsheet/Excel_Crops_Qualitative_spreadsheet.xlsx", 
            col_names = TRUE, format_headers = TRUE, use_zip64 = FALSE )
 
