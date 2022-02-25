@@ -23,7 +23,6 @@ str(d)
 d <- d[,-(46:51)]  # Drop blank columns at the end 
 d <- d[-c(591:616),] # Drop blank rows at the end
 
-  
 names(d)
 
   # Synthesis type
@@ -140,6 +139,23 @@ d$Biodiversity_measure[d$Biodiversity_measure == "Microbial_biomass_nitrogen"]<-
 d$Biodiversity_measure[d$Biodiversity_measure == "microbial biomass nitrogen (MBN),"]<- "microbial biomass nitrogen (MBN)"
 d$Biodiversity_measure[d$Biodiversity_measure == "Richness"]<- "Species_richness"
 d$Biodiversity_measure[d$Biodiversity_measure == "Wheight"]<- "Weight"
+d$Biodiversity_measure[d$Biodiversity_measure == "Wheight"]<- "Weight"
+d$Biodiversity_measure[d$Biodiversity_measure == "Maize"]<- "Count"
+d$Biodiversity_measure[d$Biodiversity_measure == "Maize_Legume"]<- "Count"
+d$Biodiversity_measure[d$Biodiversity_measure == "Mycorrhizal_fungi"]<- "Mycorrhiza_hifa_length"
+d$Biodiversity_measure[d$Biodiversity_measure == "AMF_colonization"]<- "Mycorrhiza_hifa_length"
+d$Biodiversity_measure[d$Biodiversity_measure == "microbial biomass\ncarbon (MBC)"]<- "microbial biomass carbon (MBC)"
+d$Biodiversity_measure[d$Biodiversity_measure == "microbial\nbiomass phosphorus (MBP)"]<- "microbial biomass phosphorus (MBP)"
+d$Biodiversity_measure[d$Biodiversity_measure == "Body_mass"]<- "biomass"
+d$Biodiversity_measure[d$Biodiversity_measure == "Suvival_overwinter"]<- "Survial_overwinter"
+d$Biodiversity_measure[d$Biodiversity_measure == "Population_composition"]<- "Community_composition"
+d$Biodiversity_measure[d$Biodiversity_measure == "Community_diversity"]<- "Community_composition"
+d$Biodiversity_measure[d$Biodiversity_measure == "Weed_control_effieciency )<8Mg/ha)"]<- "Weed_control_effieciency (<8 Mg/ha) "
+d$Biodiversity_measure[d$Biodiversity_measure == "Weed_control_effieciency (>8 Mg/ha) "]<- "Weed_control_effieciency (>8 Mg/ha)"
+d$Biodiversity_measure[d$Biodiversity_measure == "Nitrification;"]<- "Nitrification"
+
+
+unique(d$Biodiversity_measure)
 
 which(d$Biodiversity_measure == "Biochemical properties, faunal counts (nematode,")
 d <- d[-456,]
@@ -244,6 +260,97 @@ library(dplyr)
 
 d <- relocate(d, agricultural_system, Practice, Practice_detail, .after = Landuse )
 
+
+# When I extracted the data I did not classify each Biodiversity measure into 
+# the broader biodiversity measure categories (e.g., dehydrogenase is classified
+# as enzymatic activity. I am going to create a new column with the broad
+# biodiversity measure categories.
+
+# a. Create data frame with the biodiversity measure categories and specific 
+# biodiversity measures
+
+unique(d$Biodiversity_measure)
+
+diversity <- data.frame(biodiversity_measure = "diversity", 
+                           practice = c("Abundance", "Species_richness",
+                                        "Relative_species_richness", "Quadrat_density", 
+                                        "Mean_abundance", "Density", "Diversity",
+                                        "Simpson", "Chao-1", "ACE", "Functional_diversity",
+                                        "Population_levels", "Similarity", "Count",
+                                        "Population_composition", "Community_composition",
+                                        "Population", "Community", "Density_ratio"))
+
+
+
+biomass <- data.frame(biodiversity_measure = "biomass",
+                      practice = c("microbial biomass carbon (MBC)",
+                                        "microbial biomass nitrogen (MBN)", "", 
+                                        "Biomass_ratio", "Biomass",
+                                        "microbial biomass phosphorus (MBP)"))
+
+enzymatic_activity <- data.frame(biodiversity_measure = "Enzymatic_activity", 
+                                 practice = c("Microbial_activity", "Enzymatic_activity",
+                                   "Potential N mineralization", "microbial quotient (MQ)",
+                                   "Nitrification", "Nitrate reductase", 
+                                   "Alkaline phosphatase", "Acid phosphatase",
+                                   "nitrate\nreductase and urease", "urease",
+                                   "dehydrogenase activity", "Enzymatic_activity_respiration",
+                                   "Metabolic_activity"))
+
+survival <- data.frame(biodiversity_measure = "survival", 
+                       practice = c("Survival", "Mortality", "Egg_viability",
+                                      "Survial_overwinter"))
+
+reproduction <- data.frame(biodiversity_measure = "reproduction", 
+                           practice = c("Spore_number", "Reproduction", "Seeds",
+                                    "Fecundity", "Reproductive_fitness"))
+
+efficiency <- data.frame(biodiversity_measure = "efficiency",
+                         practice = c("Incidence", "Weight", "Adult_emergance",
+                         "Emergence", "Parasitism", "Infestation_rate",
+                         "WWeed_control_effieciency (>8 Mg/ha)",
+                         "Weed_control_effieciency (<8Mg/ha)"))
+
+
+development <- data.frame(biodiversity_measure = "development",
+                          practice = c("Development", "Development time", "Hifa_length",
+                         "Root_colonisation", "Mycorrhiza_hifa_length"))
+
+
+unclassified <- data.frame(biodiversity_measure = "unclassified",
+                           practice = c("Food_consumption", "Population_dynamics",
+                           "Pitfall_trap_rate", "Effect", "Pest_indicators",
+                           "Predator_prey_ratio"))
+
+
+biodiverity_categories <- rbind(diversity, biomass, enzymatic_activity, 
+                                   survival, reproduction, efficiency, development,
+                                   unclassified)
+
+
+      # b. Add column in data_extraction_spreadsheet of the biodiversity categories
+      # according to the production_systems data frame just created 
+
+d$biodiveristy_metric_category <- ""
+
+
+for (i in (1:1855)){
+  #browser()
+  for (j in (1:66)){
+    if (d$Biodiversity_measure[i] == biodiverity_categories$practice[j]){
+      d$biodiveristy_metric_category[i] <- biodiverity_categories$biodiversity_measure[j]
+    }}}
+
+unique(d$biodiveristy_metric_category) # Check it worked 
+
+
+# 3. Reorder columns 
+
+library(dplyr)
+
+d <- relocate(d, biodiveristy_metric_category,.before = Biodiversity_measure )
+
+colnames(d)
 
 # Save the data set in processed data folder
 
@@ -352,11 +459,26 @@ d$Biodiversity_measure[d$Biodiversity_measure == "Abundnace"]<- "Abundance"
 d$Biodiversity_measure[d$Biodiversity_measure == "Bbiomass"]<- "Biomass"
 d$Biodiversity_measure[d$Biodiversity_measure == "Catabolic:diversity"]<- "Catabolic_diversity"
 d$Biodiversity_measure[d$Biodiversity_measure == "Enzimatic_activity"]<- "Enzymatic_activity"
+d$Biodiversity_measure[d$Biodiversity_measure == "Policulture"]<- "Pesticide"
+d$Biodiversity_measure[d$Biodiversity_measure == "Richhness"]<- "Species_richness"
+d$Biodiversity_measure[d$Biodiversity_measure == "Richness"]<- "Species_richness"
+d$Biodiversity_measure[d$Biodiversity_measure == "Bacterial_biomass_carbon"]<- "microbial biomass\ncarbon (MBC)"
+d$Biodiversity_measure[d$Biodiversity_measure == "Growth"]<- "Population_growth"
+
 
 which(is.na(d$Biodiversity_measure))
 d$Biodiversity_measure[30] <- "Effect"
 d$Biodiversity_measure[32] <- "Effect"
 
+for(i in 1:nrow(d)){                            # Complete missing biodiversity measure
+  if(d$Paper_ID[i] == "Dinardo-Miranda.L"){
+    d$Biodiversity_measure[i] <- "Population"
+  }
+}
+
+d[278:281, 30] <- "Abundance"
+
+d[c(356,376), 30] <- "Effect"
 
 # When I extracted the data I did not classify each practice into the broader 
 # agricultural production system categories (e.g., no-tillage is classified as 
@@ -437,12 +559,102 @@ colnames(d)[25] <- "Practice_detail"
 colnames(d)[23] <- "Practice"
 
 
+
 # 3. Reorder columns 
 
 library(dplyr)
 
 d <- relocate(d, agricultural_system, Practice, Practice_detail, .after = Landuse )
 
+# When I extracted the data I did not classify each Biodiversity measure into 
+# the broader biodiversity measure categories (e.g., dehydrogenase is classified
+# as enzymatic activity. I am going to create a new column with the broad
+# biodiversity measure categories.
+
+# a. Create data frame with the biodiversity measure categories and specific 
+# biodiversity measures
+
+unique(d$Biodiversity_measure)
+
+diversity <- data.frame(biodiversity_measure = "diversity", 
+                        practice = c("Density", "Diversity",
+                                     "Abundance", "Species_richness", 
+                                     "Catabolic_diversity", "Floristic_diversity",
+                                     "Biodiversity", "Population_levels", "Population",
+                                     "Initial_density", "Intermediate_density", 
+                                     "Final_density", "Second_generation_abundance", 
+                                     "Community_composition", "Community_structure",
+                                     "Fauna", "Microbial_counts (CFU)"))
+
+
+
+biomass <- data.frame(biodiversity_measure = "biomass",
+                      practice = c("Biomass", 
+                                   "Bacterial_biomass_carbon",
+                                   "microbial biomass\ncarbon (MBC)"))
+
+enzymatic_activity <- data.frame(biodiversity_measure = "Enzymatic_activity", 
+                                 practice = c("Activity", "microbial_activity",
+                                              "Enzymatic_activity", "Microbial_activity" ))
+
+survival <- data.frame(biodiversity_measure = "survival", 
+                       practice = c("Survival", "Mortality"))
+
+reproduction <- data.frame(biodiversity_measure = "reproduction", 
+                           practice = c("Spore_number", "Seed_rain", "Seed_bank",
+                                        "Fecundity", "Population_growth", 
+                                        "Seed_set", "Reproductive_rate"))
+
+efficiency <- data.frame(biodiversity_measure = "efficiency",
+                         practice = c("Catches", "Germination", 
+                                      "Flowering", "Weight"))
+
+
+development <- data.frame(biodiversity_measure = "development",
+                           practice = c("Hifa_length", "Micorrhyzal_colonisation_percentage",
+                                        "Root_colonisation", "Mycorrhizal_colonisation", 
+                                        "Development", "Parasitism"))
+
+
+unclassified <- data.frame(biodiversity_measure = "unclassified",
+                         practice = c("Effect", "Trophic_conection", "Biology",
+                                      "Canopy_hight", "Root_staining", 
+                                      "Consumption rate_Body mass_body mass_Larval survival",
+                                      "body weight_development_mortality_larval behaviour",
+                                      "Abundance_biomass", "Development_health", 
+                                      "Immigration_rate", "pesticide", "Size", 
+                                      "Longevity", "Pesticide"))
+
+                                      
+biodiverity_categories <- rbind(diversity, biomass, enzymatic_activity, 
+                                survival, reproduction, efficiency, development,
+                                unclassified)
+
+
+# b. Add column in data_extraction_spreadsheet of the biodiversity categories
+# according to the production_systems data frame just created 
+
+d$biodiveristy_metric_category <- ""
+
+
+for (i in (1:440)){
+  #browser()
+  for (j in (1:57)){
+    if (d$Biodiversity_measure[i] == biodiverity_categories$practice[j]){
+      d$biodiveristy_metric_category[i] <- biodiverity_categories$biodiversity_measure[j]
+    }}}
+
+unique(d$biodiveristy_metric_category) # Check it worked 
+
+
+
+# 3. Reorder columns 
+
+library(dplyr)
+
+d <- relocate(d, biodiveristy_metric_category,.before = Biodiversity_measure )
+
+colnames(d)
 
 # Save spread sheets 
 
