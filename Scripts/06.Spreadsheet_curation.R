@@ -10,7 +10,7 @@ rm(list = ls())
 library(dplyr)
 library(writexl)
 
-########################################## Quantitative data ##########################################
+########################################## Quantitative data ##########################################----
 
 # I am going to check the unique values for each column to make sure all the names are correct and fill out any cells that might
 # need data
@@ -70,6 +70,38 @@ unique(d$Crop[rape])# and throw them out
 d$Crop[d$Crop == "Bt_oilseed_Rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "Bt_Oilseed_rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "GM_Oilseed_rape"]<-"GM_Rape"
+
+    #Check crop categories are correctly classified into the commodities 
+
+categories <- select(d, Commodity, Crop)
+categories <- categories %>% distinct()
+
+commodities <- unique(categories$Commodity)  # 1. Create vector with the name of 
+                                             # the commodities of the data frame 
+
+commodities_list <- list()   # 2. Create a list where I will store the subseted data
+
+for (com in commodities){                                   # 3. For each commodity in the commodities verctor, filter 
+  data <- dplyr :: filter( categories , Commodity == com)   # the commodity column in the data frame and when the 
+                                                            # comodity in the data frame matches the commodity in the 
+  commodities_list[[com]] <- data                           # vector, subset that data and put in into the list.
+}  
+
+
+# There is an error because some Maize crops are categorized as legumes
+
+which(d$Commodity == "Legumes" & d$Crop == "Maize")
+
+d[14:26, 15] <- "Cereals_grains"
+
+# There is an error because soybean crops are categorized as cereals and grains
+
+for(i in 1:nrow(d)){
+  if(d$Crop[i] == "Soybean"){
+    d$Commodity[i] <- "Oils_fats"
+  }
+}
+
 
   # Kingdom
 
@@ -359,7 +391,7 @@ library(writexl)
 write.csv(d, "Data/01.Processed_Data/03.Curated_spreadsheet/Csv_Crops_Quantitative_spreadsheet.csv")
 write_xlsx(d, "Data/01.Processed_Data/03.Curated_spreadsheet/Excel_Crops_Quantitative_spreadsheet.xlsx")
 
-########################################## Qualitative data ##########################################
+########################################## Qualitative data ##########################################----
 
 rm(list=ls())
 
