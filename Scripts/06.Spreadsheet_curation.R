@@ -71,22 +71,27 @@ d$Crop[d$Crop == "Bt_oilseed_Rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "Bt_Oilseed_rape"]<-"Bt_Rape"
 d$Crop[d$Crop == "GM_Oilseed_rape"]<-"GM_Rape"
 
-    #Check crop categories are correctly classified into the commodities 
+    #Check crops are correctly classified into the commodities 
 
-categories <- select(d, Commodity, Crop)
-categories <- categories %>% distinct()
-
-commodities <- unique(categories$Commodity)  # 1. Create vector with the name of 
-                                             # the commodities of the data frame 
+commodities <- unique(my_classes$Commodity)  # 1. Create vector with the name of 
+                                             # the orders of the data frame 
 
 commodities_list <- list()   # 2. Create a list where I will store the subseted data
 
-for (com in commodities){                                   # 3. For each commodity in the commodities verctor, filter 
-  data <- dplyr :: filter( categories , Commodity == com)   # the commodity column in the data frame and when the 
-                                                            # comodity in the data frame matches the commodity in the 
-  commodities_list[[com]] <- data                           # vector, subset that data and put in into the list.
-}  
+                              # 3. For each commodity in the commodities verctor, filter 
+                              # the commodity column in the my_classes data frame and when the
+                              # commodity in the data frame matches the commodity in the
+                              # vector, subset that data and put in into the list.
+                              # [[com]] names each subset with the ord name, so
+                              # the subsetted data will be stored in the list under its 
+                              # commodity name. 
 
+
+for (com in commodities){                                   
+  data <- dplyr :: filter( my_classes , Commodity == com)    
+  
+  commodities_list[[com]] <- data                          
+} 
 
 # There is an error because some Maize crops are categorized as legumes
 
@@ -383,6 +388,19 @@ library(dplyr)
 d <- relocate(d, biodiveristy_metric_category,.before = Biodiversity_measure )
 
 colnames(d)
+
+
+# I checked wrong entries and corrected them
+
+which(d$Crop == "Maize_Legume")
+
+d[(27:32), 15] <- "Cereals_grains"
+d[(27:32), 16] <- "Maize"
+d[(27:32), 27] <- "mixed"
+d[(27:32), 28] <- "intercrop"
+d[(27:32), 29] <- "intercrop"
+d[(27:32), 31] <- "legume"
+
 
 # Save the data set in processed data folder
 
