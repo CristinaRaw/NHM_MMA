@@ -71,7 +71,7 @@ write_xlsx(my_classes, "Outputs/06.Magpie_classes/my_classes.xlsx")
 
 # Load the excel file with magpie classes and my crops
 
-magpie <- read.csv2("Data/04.Magpie_classes/CSV_Magpie_classess.csv")
+magpie <- read.csv2("Data/01.Processed_Data/04.Magpie_classes/CSV_Magpie_classess.csv")
 
 d$magpie_class <- ""    # Create column in data frame where I will input magpie's
                         # crop classes depending on the crop recorded in the row
@@ -107,12 +107,14 @@ magpie[5,3] <- "Barley"
 
 for (i in (1:587)){
   #browser()
-  for (j in (1:29)){
+  for (j in (1:31)){
     if (d$Crop[i] == magpie$My_crops[j]){
       d$magpie_class[i] <- magpie$Magpie_classess[j]
     }}}
 
 # Check it worked 
+
+which(d$magpie_class == "")
 
 unique(d$magpie_class)   # It worked
 
