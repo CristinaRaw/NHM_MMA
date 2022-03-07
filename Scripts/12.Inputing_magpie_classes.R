@@ -119,7 +119,7 @@ unique(d$magpie_class)   # It worked
 # Save
 
 write.csv(d, "Outputs/06.Magpie_classes/Csv_Magpie_Crops_Quantitative_spreadsheet.csv")
-write.csv(d,"Data/04.Magpie_classes/Csv_Magpie_Crops_Quantitative_spreadsheet.csv")
+write.csv(d,"Data/01.Processed_Data/04.Magpie_classes/Csv_Magpie_Crops_Quantitative_spreadsheet.csv")
 
 
 
