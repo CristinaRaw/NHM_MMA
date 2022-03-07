@@ -270,13 +270,19 @@ agricultural_categories <- rbind(conventional, conservation, organic, transgenic
 d$agricultural_system <- ""
 
 
-for (i in (1:558)){
+for (i in (1:590)){
   #browser()
   for (j in (1:32)){
     if (d$Production_system[i] == agricultural_categories$practice[j]){
       d$agricultural_system[i] <- agricultural_categories$production_system[j]
     }}}
 
+          # c. Check it worked
+
+unique(d$agricultural_system)
+which(d$agricultural_system == "")
+
+d <- d[-583,]
 
 # 2. Rename the existing columns the following way:
 
