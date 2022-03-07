@@ -11,7 +11,6 @@ rm(list = ls())
 d <- read.csv("Data/01.Processed_Data/03.Curated_spreadsheet/Csv_Crops_Quantitative_spreadsheet.csv", 
               row.names = 1)
 
-x <- na.omit(magpie)
 
 # Make dataframe with commodities and crops----
 
@@ -87,7 +86,7 @@ magpie <- na.omit(magpie)  # First I remove rows with NA in the magpie data set
                            # 1. NA rows means I don't have data for that crop
                            # 2. NA's will interrupt the following for loop
 
-for (i in (1:590)){
+for (i in (1:587)){
   #browser()
   for (j in (1:29)){
     if (d$Crop[i] == magpie$My_crops[j]){
@@ -106,7 +105,7 @@ magpie[5,3] <- "Barley"
 
 # Rerun loop 
 
-for (i in (1:590)){
+for (i in (1:587)){
   #browser()
   for (j in (1:29)){
     if (d$Crop[i] == magpie$My_crops[j]){
@@ -145,8 +144,11 @@ crop_data <- relocate(crop_data, Magpie_class, .before = Crop)
 
 # Save data frames
 
-write_xlsx(magpie_data, "Outputs/06.Magpie_classes/DataDigest_MagpieClasses.xlsx")
-write_xlsx(crop_data, "Outputs/06.Magpie_classes/DataDigest_CropData.xlsx")
+write_xlsx(magpie_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_MagpieClasses.xlsx")
+write.csv(magpie_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_MagpieClasses.csv")
+
+write_xlsx(crop_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_CropData.xlsx")
+write.csv(crop_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_CropData.csv")
 
 
 # Count number of papers per crop ----
@@ -159,8 +161,7 @@ data_count_1 <- aggregate(data = papers,                  # Count the number of
 
 crop_Nstudies_Npapers <- merge(crop_data,data_count_1,by="Crop")  # Make table
 
-write_xlsx(crop_Nstudies_Npapers, "Outputs/06.Magpie_classes/Crops_Nstudies_Npapers.xlsx")
-
+write_xlsx(crop_Nstudies_Npapers, "Outputs/06.Magpie_classes/DataDigest/Crops_Nstudies_Npapers.xlsx")
 
 
 
