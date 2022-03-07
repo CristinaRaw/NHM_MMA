@@ -74,7 +74,7 @@ write_xlsx(my_classes, "Outputs/06.Magpie_classes/my_classes.xlsx")
 magpie <- read.csv2("Data/04.Magpie_classes/CSV_Magpie_classess.csv")
 
 d$magpie_class <- ""    # Create column in data frame where I will input magpie's
-                        # crop classess depending on the crop recorded in the row
+                        # crop classes depending on the crop recorded in the row
 
 colnames(magpie)[3] <- "My_crops"  # Change column name that bothered me
 
@@ -116,54 +116,10 @@ for (i in (1:587)){
 
 unique(d$magpie_class)   # It worked
 
+# Save
 
-# Magpie data digest ----
-
-  # Coarse data digest: how many observations per magpie class?
-
-magpie_data <- as.data.frame(table(d$magpie_class))
-
-  # Detailed data digest: within each magpie class, how many observations per crop?
-
-crop_data <- as.data.frame(table(d$Crop))
-
-  # Add column with magpie classes
-
-colnames(crop_data)[1] <- "Crop"
-colnames(crop_data)[2] <- "N"
-
-
-for (i in (1:31)){
-  #browser()
-  for (j in (1:31)){
-    if (crop_data$Crop[i] == magpie$My_crops[j]){
-      crop_data$Magpie_class[i] <- magpie$Magpie_classess[j]
-    }}}
-
-crop_data <- relocate(crop_data, Magpie_class, .before = Crop)
-
-# Save data frames
-
-write_xlsx(magpie_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_MagpieClasses.xlsx")
-write.csv(magpie_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_MagpieClasses.csv")
-
-write_xlsx(crop_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_CropData.xlsx")
-write.csv(crop_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_CropData.csv")
-
-
-# Count number of papers per crop ----
-
-papers <- select(d, Crop, Paper_ID)
-
-data_count_1 <- aggregate(data = papers,                  # Count the number of 
-                          Paper_ID ~ Crop,                # per crop
-                          function(x) length(unique(x)))
-
-crop_Nstudies_Npapers <- merge(crop_data,data_count_1,by="Crop")  # Make table
-
-write_xlsx(crop_Nstudies_Npapers, "Outputs/06.Magpie_classes/DataDigest/Crops_Nstudies_Npapers.xlsx")
-
-
+write.csv(d, "Outputs/06.Magpie_classes/Csv_Magpie_Crops_Quantitative_spreadsheet.csv")
+write.csv(d,"Data/04.Magpie_classes/Csv_Magpie_Crops_Quantitative_spreadsheet.csv")
 
 
 
