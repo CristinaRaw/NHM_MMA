@@ -202,10 +202,19 @@ for all crops VividEconomics are interested in except for vegetables, fruits and
 nuts. Potato could potentially be analysed too, although I would recommend getting 
 some a couple more papers on it. 
 
+If transform all data into the same format, I could compare:
+
+  - Maize: conservation, mixed, transgenic
+  - Cotton: mixed and transgenic
+  - Oil palm: all data on conventional
+  - Soybean: not much, can get an estimate for mixed cropping
+  - Sugarcane: conservation and conventional
+  - Potato (potentially): conventional, organic, transgenic
+
   1. Problem: since the data came from syntheses, many observations do not come with 
 variance data, which is needed to perform a meta analysis. 
 
-  - Solution: extract the data from the individual studies included in the synthesis.
+  - Solution: extract the data from the individual studies included in the syntheses.
 However, that will postpone the meta analysis.
 
   - Solution: look for information on how to perform meta analysis without variance data.
@@ -215,7 +224,6 @@ meta analysis, since these were not focal crops in the scoping phase.
 
   - Solution: provide time estimate on how long it would take to obtain this data.
   
-
 
 
 
