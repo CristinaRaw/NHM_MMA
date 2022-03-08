@@ -135,7 +135,7 @@ kable(crop_Nstudies_Npapers, row.names = TRUE)
 
 ## For each crop, number of observations per agricultural system
 
-If I get all the data to be of the same type, I could compare:
+If I transform all the data into the same format, I could compare:
 
   - Cotton: mixed and transgenic
   - Maize: conservation, mixed, transgenic
@@ -156,24 +156,6 @@ magpie_reshape <- as.data.frame(table(magpie_reshape))
 magpie_reshape <- magpie_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
                                           values_from = Freq)
 kable(magpie_reshape, row.names = TRUE)
-
-```
-
-## Number of observations per effect size type
-
-```{r, echo = FALSE}
-
-d$Effect_size[d$Effect_size == "Hedges_d"]<- "Hedges’ d"
-es <- as.data.frame(table(d$Effect_size))
-
-colnames(es) <- c("Effec size", "N of observations")
-es <- es[order(-es$`N of observations`),]
-
-kable(es, row.names = TRUE)
-
-efs <- aggregate(data = d,                        # Count the number of papers
-               Effect_size ~ Crop,        # per agricultural system
-               function(x) length(unique(x)))
 
 ```
 
@@ -248,19 +230,27 @@ kable(systems, row.names = TRUE)
 
 # Conclusion
 
-There is enough data to compare production systems for cereals, oil crops, and sugar. Maybe it could also be done for other annual crops.
+  1. There is enough data to compare production systems for the following commodities:
+    cereals, oil crops, and sugar. It might be possible too for other annual crops.
 
-To perform a meta analysis, I would need to extract the acual effect size and variance for 
-all the percentage observations. I will have a read on other options.
+  2. If I transform all the data into the same format I could compare: 
 
-If I get all the data to be of the same type, I could compare:
+  - Cotton: mixed and transgenic
+  - Maize: conservation, mixed, transgenic
+  - Potato (potentially): conventional, organic, transgenic
+  - Rapeseed: IPM and transgenic
+  - Sugarcane: conservation and conventional
+  - Wheat: conventional and organic
 
-Cotton: mixed and transgenic
-Maize: conservation, mixed, transgenic
-Potato (potentially): conventional, organic, transgenic
-Rapeseed: IPM and transgenic
-Sugarcane: conservation and conventional
-Wheat: conventional and organic
+  3. Potentially useful to do an analysis per agricultural system. It seems as there is 
+enough data for all production systems except unclassified and IPM
+  
+  4. Problem: since the data came from syntheses, many observations do not come with 
+variance data, which is needed to perform a meta analysis. 
 
-Potentially useful to do an analysis per agricultural system. It seems as there could be 
-enough data for all production systems except unclassified and IPM,
+  - Solution: extract the data from the individual studies included in the syntheses.
+However, that will postpone the meta analysis.
+
+  - Solution: look for information on how to perform meta analysis without variance data.
+
+.
