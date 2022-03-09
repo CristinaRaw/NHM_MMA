@@ -1,0 +1,241 @@
+---
+title: "MetaAnalysis_VividEconomics"
+author: "Christina Raw"
+date: "8/3/2022"
+output: html_document
+---
+
+I am going to try to perform some kind of meta analysis for the crops Vivid Economics
+are interested in, which are: maize, cotton, oil palm, soybean, sugarcane and potato.
+
+The data set consists on measures of biodiversity under different agricultural
+systems for different crops.
+
+1. Split data set according to type of effect size
+2. Do a brief data digest on to see how much data there is per each type of crop 
+   and production system. Depending on the conclusion:
+    
+    a. Proceed to analysis
+    b. Transform data into the same format. Idea:
+              Value     -> LRR -> percentage change
+              Hedge's g
+
+3. Check how to do analysis for each type of effect size:
+
+    a. Percentage change: get variance data based on the number of observations
+    b. Value: classic meta analysis
+    c. Hedge's g: can I transform it into LRR?
+    d. LRR: back transform into percentage
+    
+    
+*INTRO BIS*
+
+1. Split data set according to type of effect size
+
+2. Transform data into the same format:
+
+    a. Value -> LRR -> Percentage change
+    b. LRR -> Perventage change
+
+Now I will have two types of effect sizes: 
+
+    a. Percentage change
+    b. Hedges g
+    
+  
+  
+### Load and clean data set
+
+Yes, I know the de data set should be perfectly clean, but it's not.
+
+![:(](Images/please-dont-judge-me.png)
+
+
+```{r, include = FALSE}
+
+library(here)
+
+d <- read.csv2(here("Data/01.Processed_Data/05. Analysis_data", "V2_Magpie_Crops_Quantitative_spreadsheet.csv"))
+d <- d[,-1] # Remove useless first column
+
+unique(d$Crop) # Change Bt_CropName into just CropName
+
+d$Crop[d$Crop == "Bt_Corn"]<- "Corn"
+d$Crop[d$Crop == "Bt_Potato"]<- "Potato"
+d$Crop[d$Crop == "Bt_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "Bt_Eggplant"]<- "Eggplant"
+d$Crop[d$Crop == "Bt_Rice"]<- "Rice"
+d$Crop[d$Crop == "Bt_Maize"]<- "Maize"
+d$Crop[d$Crop == "Bt_Sunflower"]<- "Sunflower"
+d$Crop[d$Crop == "Bt_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "GM_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "Bt_Broccoli"]<- "Broccoli"
+d$Crop[d$Crop == "GM_Potato"]<- "Potato"
+d$Crop[d$Crop == "GM_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "GM_Tomato"]<- "Tomato"
+d$Crop[d$Crop == "Gm_Strawberry"]<- "Strawberry"
+
+unique(d$Effect_size) # Unify effect size names 
+
+d$Effect_size[d$Effect_size == "Hedges' d"]<- "Hedges_d"
+
+which(d$Effect_size == "") # Remove useless row with no data
+d <- subset(d,d$Effect_size != "")
+
+d <- subset(d, d$Crop == "Maize"|   # Subset data of the crops VividEvonomics
+            d$Crop == "Cotton"|     # are interested in
+            d$Crop == "Oil_palm"|
+            d$Crop == "Soybean"|
+            d$Crop == "Sugarcane"|
+            d$Crop == "Strawberry"|
+            d$Crop == "Broccoli"|
+            d$Crop == "Tomato"|
+            d$Crop == "Potato"|
+            d$Crop == "Eggplant")
+
+```
+
+## Dataset for VividEvonomics, brief data digest
+
+The data set consists of biodiversity observations under differenc agricutlural
+production systems, for the crops VividEconomics are interested in are:
+
+  -	Maize
+  -	Cotton
+  -	Oil palm
+  -	Soybean
+  -	Sugar cane
+  -	Fruits, Nuts, Vegetables
+
+For these crops, there are the following number of observations under the different
+production systems:
+
+```{r, message = FALSE, echo = FALSE}
+
+# See how many observations per crop and production system
+
+library(knitr)
+library(tidyr)
+library(dplyr)
+
+crop_reshape <- select(d, Crop, agricultural_system)
+crop_reshape <- as.data.frame(table(crop_reshape))
+
+crop_reshape <- crop_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+
+kable(crop_reshape, row.names = TRUE)
+```
+
+If transform all data into the same format, I could compare:
+
+  - Maize: conservation, mixed, transgenic
+  - Cotton: mixed and transgenic
+  - Oil palm: all data on conventional
+  - Soybean: not much, can get an estimate for mixed cropping
+  - Sugarcane: conservation and conventional
+  - Potato (potentially): conventional, organic, transgenic
+
+
+## 1. Split data set according to type of effect size
+
+```{r, results = 'hide'}
+
+# Split data set per type of effect size
+
+unique(d$Effect_size) #Check effect sizes are correct
+
+effect_size <- unique(d$Effect_size)  # Make list that stores data split per type of effect size
+es_list <- list()                     
+
+for (es in effect_size){
+data <- dplyr :: filter( d , Effect_size == es)
+es_list[[es]] <- data
+}
+
+list2env(es_list, envir=.GlobalEnv)   # Make a data frame of each of the data sets in the list  
+                                      
+```
+
+## 2. Transform data into the same format:
+
+  a. Value -> LRR -> Percentage change
+  b. LRR -> Percentage change
+
+### Value to LRR to Percentage change
+
+First, I need to complete the value data set.
+
+I went back to the papers where the papers for the value data. There were two 
+papers:
+
+  1. Fitzherbert.E: the relative species richness that compares species richness
+  between conventional oil palm ans primary/disturbed forest can be transformed 
+  into percentage change. Primary/disturbed forest = 100% Species richness, and 
+  the difference to the relative abundance in conventional oil palm is the 
+  percentage change.
+  
+```{r, results = 'hide'}                                                        
+library(tidyr)
+
+Value <- drop_na(Value,Sample_size) # Remove rows where there is not sample size 
+                                    # data
+
+
+unique(Value$Paper_ID)  # Subset the data for which I can transform value into percentage change 
+value_into_percentage <- subset(Value,                         
+                                Paper_ID == "Fitzherbert.E")   
+                                                                                                       
+
+value_into_percentage$Value <- as.numeric(value_into_percentage$Value) # Transform column class to numeric 
+class(value_into_percentage$Value)                      
+                                           
+value_into_percentage <- value_into_percentage %>% # Create column of percentage change
+                            mutate(Percentage_change = -100*(1-Value))
+  
+value_into_percentage <- relocate(value_into_percentage,  # Relocate column so I can rbind with Percentage_change
+                                  Percentage_change,      # data frame
+                                  .after = Value)
+
+```
+
+  
+  
+  2. Kromp.B: I went to the individual papers to get variance data and be able to
+  calculate the log response ratio. There was no variance data in the individual
+  studies, so I cannot estimate the LRR
+
+
+### LRR to Percentage change
+
+The Log response ratio can be back transformed into percentage change using the 
+following equation:
+
+  $$\begin{aligned}Percentage change = 100 * (e^{LRR} - 1)\end{aligned}$$
+
+```{r, results='hide'}
+
+LRR$Value <- as.numeric(LRR$Value)  # Transform column class into numeric
+
+lrr_into_percentage <- mutate(LRR,  # Back transform LRR into percentage change
+                            Percentage_change = 100 * (exp(LRR$Value) - 1))
+
+lrr_into_percentage[1:7, 37] <- LRR[1:7, 37]  # The first seven rows had percentage change values extracted from 
+                                              # the  syntheses, imputing them
+
+
+```
+
+
+### Merge all percentage change data frames
+
+```{r}
+
+Percentage_change <- rbind(Percentage_change,     # Merge the three data frames now that they  all have the
+                           value_into_percentage, # same type of effect size data
+                           lrr_into_percentage)   
+                                                  
+
+```
+
+

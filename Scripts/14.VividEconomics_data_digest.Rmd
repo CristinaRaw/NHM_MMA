@@ -12,6 +12,9 @@ output: html_document
 library(dplyr)
 library(here)
 d <- read.csv(here("Data/01.Processed_Data/04.Magpie_classes",  "Csv_Magpie_Crops_Quantitative_spreadsheet.csv"), row.names = 1) # Load data
+--d <- d[,-1] # Remove useless first column
+
+unique(d$Crop) # Cahnge Bt_CropName into just CropName
 
 d$Crop[d$Crop == "Bt_Corn"]<- "Corn"
 d$Crop[d$Crop == "Bt_Potato"]<- "Potato"
