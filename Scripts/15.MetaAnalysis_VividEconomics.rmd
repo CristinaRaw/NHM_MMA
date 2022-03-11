@@ -9,40 +9,21 @@ I am going to try to perform some kind of meta analysis for the crops Vivid Econ
 are interested in, which are: maize, cotton, oil palm, soybean, sugarcane and potato.
 
 The data set consists on measures of biodiversity under different agricultural
-systems for different crops.
-
-1. Split data set according to type of effect size
-2. Do a brief data digest on to see how much data there is per each type of crop 
-   and production system. Depending on the conclusion:
-    
-    a. Proceed to analysis
-    b. Transform data into the same format. Idea:
-              Value     -> LRR -> percentage change
-              Hedge's g
-
-3. Check how to do analysis for each type of effect size:
-
-    a. Percentage change: get variance data based on the number of observations
-    b. Value: classic meta analysis
-    c. Hedge's g: can I transform it into LRR?
-    d. LRR: back transform into percentage
-    
-    
-*INTRO BIS*
+systems for the different crops.
 
 1. Split data set according to type of effect size
 
 2. Transform data into the same format:
 
-    a. Value -> LRR -> Percentage change
-    b. LRR -> Perventage change
+  a. Value -> LRR -> Percentage change
+  b. LRR -> Percentage change
 
-Now I will have two types of effect sizes: 
+Then I will have two types of effect sizes: 
 
-    a. Percentage change
-    b. Hedges g
-    
-  
+  a. Percentage change
+  b. Hedges g
+   
+3. Calculate weighted mean  
   
 ### Load and clean data set
 
@@ -50,13 +31,24 @@ Yes, I know the de data set should be perfectly clean, but it's not.
 
 ![:(](Images/please-dont-judge-me.png)
 
+```{r, message = FALSE}
+
+# Load all packages I will need:
+
+library(here) # To tell RMD where to find and store files
+library(knitr) # To make RMD tables
+library(tidyr) # To tidy data sets
+library(dplyr) # To manipulate the data sets
+
+```
 
 ```{r, include = FALSE}
 
-library(here)
+d <- read.csv2(here("Data/00.Raw_Data/05.Analysis_data", "V2_Magpie_Crops_Quantitative_spreadsheet.csv"))
 
-d <- read.csv2(here("Data/01.Processed_Data/05. Analysis_data", "V2_Magpie_Crops_Quantitative_spreadsheet.csv"))
-d <- d[,-1] # Remove useless first column
+library(writexl)
+library
+
 
 unique(d$Crop) # Change Bt_CropName into just CropName
 
@@ -97,7 +89,7 @@ d <- subset(d, d$Crop == "Maize"|   # Subset data of the crops VividEvonomics
 
 ## Dataset for VividEvonomics, brief data digest
 
-The data set consists of biodiversity observations under differenc agricutlural
+The data set consists of biodiversity observations under different agricultural
 production systems, for the crops VividEconomics are interested in are:
 
   -	Maize
@@ -113,10 +105,6 @@ production systems:
 ```{r, message = FALSE, echo = FALSE}
 
 # See how many observations per crop and production system
-
-library(knitr)
-library(tidyr)
-library(dplyr)
 
 crop_reshape <- select(d, Crop, agricultural_system)
 crop_reshape <- as.data.frame(table(crop_reshape))
@@ -145,16 +133,16 @@ If transform all data into the same format, I could compare:
 
 unique(d$Effect_size) #Check effect sizes are correct
 
-effect_size <- unique(d$Effect_size)  # Make list that stores data split per type of effect size
-es_list <- list()                     
+effect_size <- unique(d$Effect_size)  # Make list that stores data split per type 
+es_list <- list()                     # of effect size
 
 for (es in effect_size){
 data <- dplyr :: filter( d , Effect_size == es)
 es_list[[es]] <- data
 }
 
-list2env(es_list, envir=.GlobalEnv)   # Make a data frame of each of the data sets in the list  
-                                      
+list2env(es_list, envir=.GlobalEnv)   # Make a data frame of each of the data 
+                                      # sets in the list  
 ```
 
 ## 2. Transform data into the same format:
@@ -162,56 +150,60 @@ list2env(es_list, envir=.GlobalEnv)   # Make a data frame of each of the data se
   a. Value -> LRR -> Percentage change
   b. LRR -> Percentage change
 
-### Value to LRR to Percentage change
+### Value to LRR and then to Percentage change
 
 First, I need to complete the value data set.
 
-I went back to the papers where the papers for the value data. There were two 
-papers:
+I went back to the syntheses from which I extracted the value data. There were two 
+syntheses:
 
   1. Fitzherbert.E: the relative species richness that compares species richness
-  between conventional oil palm ans primary/disturbed forest can be transformed 
+  between conventional oil palm and primary/disturbed forest can be transformed 
   into percentage change. Primary/disturbed forest = 100% Species richness, and 
-  the difference to the relative abundance in conventional oil palm is the 
-  percentage change.
+  the difference to this value is the percentage change.
   
 ```{r, results = 'hide'}                                                        
-library(tidyr)
 
-Value <- drop_na(Value,Sample_size) # Remove rows where there is not sample size 
-                                    # data
+value_clean <- drop_na(Value,Sample_size) # Remove rows where there is not sample 
+                                          # size data
 
+unique(value_clean$Paper_ID)  # Subset the data for which I can transform value 
+                              # into percentage change 
 
-unique(Value$Paper_ID)  # Subset the data for which I can transform value into percentage change 
-value_into_percentage <- subset(Value,                         
+value_into_percentage <- subset(value_clean,                         
                                 Paper_ID == "Fitzherbert.E")   
                                                                                                        
+# Transform column class to numeric
 
-value_into_percentage$Value <- as.numeric(value_into_percentage$Value) # Transform column class to numeric 
-class(value_into_percentage$Value)                      
+value_into_percentage$Value <- as.numeric(value_into_percentage$Value)  
+
+class(value_into_percentage$Value)  # Check it worked                    
                                            
 value_into_percentage <- value_into_percentage %>% # Create column of percentage change
                             mutate(Percentage_change = -100*(1-Value))
   
-value_into_percentage <- relocate(value_into_percentage,  # Relocate column so I can rbind with Percentage_change
-                                  Percentage_change,      # data frame
-                                  .after = Value)
+value_into_percentage <- relocate(value_into_percentage,  # Relocate column so I 
+                                  Percentage_change,      # can rbind all df into
+                                  .after = Value)         # the % change df
 
 ```
 
-  
-  
-  2. Kromp.B: I went to the individual papers to get variance data and be able to
-  calculate the log response ratio. There was no variance data in the individual
-  studies, so I cannot estimate the LRR
+  2. Kromp.B: I went to the individual papers to get variance to then calculate
+  the log response ratio. There was no variance data in the individual studies,
+  so I cannot estimate the LRR
 
+  3. Bitew.Y:  I went to the individual papers to get variance to then calculate
+  the log response ratio. There was no variance data in the individual studies,
+  so I cannot estimate the LRR
+  
+I could get an average and that's it 
 
 ### LRR to Percentage change
 
 The Log response ratio can be back transformed into percentage change using the 
 following equation:
 
-  $$\begin{aligned}Percentage change = 100 * (e^{LRR} - 1)\end{aligned}$$
+  $$Percentage change = 100 * (e^{LRR} - 1)$$
 
 ```{r, results='hide'}
 
@@ -220,9 +212,9 @@ LRR$Value <- as.numeric(LRR$Value)  # Transform column class into numeric
 lrr_into_percentage <- mutate(LRR,  # Back transform LRR into percentage change
                             Percentage_change = 100 * (exp(LRR$Value) - 1))
 
-lrr_into_percentage[1:7, 37] <- LRR[1:7, 37]  # The first seven rows had percentage change values extracted from 
-                                              # the  syntheses, imputing them
-
+lrr_into_percentage[1:7, 37] <- LRR[1:7, 37]  # The first seven rows had percentage 
+                                              # change values extracted from the    
+                                              # syntheses, imputing them
 
 ```
 
@@ -231,11 +223,250 @@ lrr_into_percentage[1:7, 37] <- LRR[1:7, 37]  # The first seven rows had percent
 
 ```{r}
 
-Percentage_change <- rbind(Percentage_change,     # Merge the three data frames now that they  all have the
-                           value_into_percentage, # same type of effect size data
-                           lrr_into_percentage)   
+# I exclude LRR into percentage because it's better to do next steps with the
+# LRR format
+
+Percentage_change <- rbind(Percentage_change,     # Merge the three data frames  
+                           value_into_percentage) # now that they  all have the 
+                                                  # same type of effect size data
                                                   
+```
+
+```{r, eval = FALSE}
+
+write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis",
+                                  "01.Percentage_change.csv"))
+
+write.csv(Percentage_change, here("Outputs/07.Analysis",
+                                  "01.Percentage_change.csv"))
+
+write.csv(Hedges_d, here("Data/01.Processed_Data/05.Analysis",
+                               "02.Hedges_d.csv"))
+
+write.csv(Hedges_d, here("Outputs/07.Analysis",
+                                  "02.Hedges_d.csv"))
 
 ```
+
+### After talking to Andy, we decided to do the wheighted average on LRR ratio
+values. So, instead of transforming the LRR into % change, I will transform the 
+% change values that come from a LRR back into LRR.
+
+
+  $$LRR= ln((Percentage change/100) + 1)$$
+```{r}
+
+# Back transform the percentage data that comes from LRR into % Change
+
+LRR$Percentage_change <- as.numeric(LRR$Percentage_change)  # Transform column 
+                                                            # class into numeric
+
+lrr = log((LRR$Percentage_change[5:7]/100) + 1) # Transform LRR into percentage change
+
+perc =  100 * (exp(lrr) - 1)
+bowles_data <- as.data.frame(lrr)
+
+100 * (exp(bowles_data$lrr) - 1) # Check transformation is right
+
+LRR[5:7,37] <- bowles_data  # Add data where it corresponds in the data frame
+
+```
+
+```{r, eval = FALSE}
+
+write.csv(LRR, here("Data/01.Processed_Data/05.Analysis",
+                                  "03.LRR.csv"))
+
+write.csv(LRR, here("Outputs/07.Analysis",
+                                  "03.LRR.csv"))
+```
+
+So now, I have four types of data:
+
+  - Log response ratio
+  - Percentage change: 193 observations
+  - Hedge's g: 138 observations
+  - Plain species richness and abundance I cannot really use as they do not have
+  variance data.
+  
+  
+### Brief data digest 
+
+```{r, echo = FALSE}
+
+# Digest percentage change data 
+
+perc_reshape <- select(Percentage_change, Crop, agricultural_system)
+perc_reshape <- as.data.frame(table(perc_reshape))
+
+perc_reshape <- perc_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+
+kable(perc_reshape, row.names = TRUE, caption = "Percentage change data digest")
+
+# Digest the log response ratio data
+
+lrr_reshape <- select(LRR, Crop, agricultural_system)
+lrr_reshape <- as.data.frame(table(lrr_reshape))
+
+lrr_reshape <- lrr_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+
+kable(lrr_reshape, row.names = TRUE, caption = "Percentage change data digest")
+
+```
+
+I can calculate estimates and compare:
+
+  - Maize: conservation, mixed, transgenic
+  - Cotton: mixed and transgenic
+  - Oil palm: all data on conventional
+  - Soybean: not much, can get an estimate for mixed cropping
+  - Sugarcane: conservation and conventional
+  - Potato (potentially): transgenic
+
+```{r, echo = FALSE}
+
+# Digest Hedge's g data 
+
+hg <- select(Hedges_d, Crop, agricultural_system)
+hg <- as.data.frame(table(hg))
+
+hg <- hg %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                            values_from = Freq)
+
+kable(hg, row.names = TRUE, caption = "Hedge's g data digest")
+
+
+```
+
+  
+With the data on Hedge's g I can get more accurate estimates as I include more 
+data and from more sources but I cannot really compare.
+
+
+
+
+Since the data came from syntheses, many observations do not have variance data, 
+which is needed to perform a meta analysis. There are two possible options:
+
+  a. If the synthesis provides an estimate and nothing else, calculate the 
+  average
+
+  b. If the synthesis provides a confidence interval or a 'sample size' (the 
+  number of comparisons or studies that were synthesized), use this information
+  to calculate a weighted mean. If syntheses don't report that information, then 
+  it would be reasonable to give them the same weight as the lowest-weighted 
+  synthesis (A slightly lower weight might be 'purer' but I can't think of any 
+  kind of objective way of working out just how much less weight to give them.) 
+
+Narrative syntheses (i.e., reviews) summarize the results of studies, whereas 
+quantitative syntheses (i.e., meta-analysis) combine the results of multiple 
+studies. Compared to meta-analyses, reviews present many limitations such as lack
+of transparency, subjectivity and lack of a statistical synthesis. Meta-analysis
+use am objective protocol and statistically synthesis the results of multiple
+studies to obtain an overall view, providing more precise and objective evidence.
+
+In a meta-analysis, included studies will have more or less weight in the analysis
+according to their precision. Therefore, studies with less variance will have 
+more weight in the analysis. 
+
+Since there is no variance data, I am going to apply the following formula to 
+obtain variance data:
+
+1/number of studies included in the synthesis
+
+This formula will assign variance to each study reflecting the lower precision 
+of reviews. In a review each observation comes comes from 1 single study whereas 
+meta-analysis observations come from many studies. 
+
+Problem: all the reviews will have the same variance. 
+Solution: this is where weighting becomes handy
+
+Weight = variance - (1/quality score)
+
+
+## 3. Calculate weighted mean
+
+Each review observation will be weighted as 1, because it comes from one study.
+Meta-analysis observations will be weighted according to the number of studies
+included in the meta-analysis.
+
+### Add column of weight
+
+ a. Percentage change data
+ 
+```{r}
+
+rm(list=ls())
+
+Percentage_change <- read.cs( here("Outputs/07.Analysis",
+                                  "01.Percentage_change.csv"))
+
+Percentage_change$weight <- ""
+
+# Add a weight of 1 to reviews
+
+Percentage_change$weight[Percentage_change$Synthesis_type == "Review"] <- 1
+
+# Add the a weight = number of studies for the meta analysis
+
+which(Percentage_change$Synthesis_type == "Meta-Analysis") # Which rows are MA?
+
+Percentage_change$N_Studies[c(74:77)] # How many studies in were incldued in  
+                                      # those meta-analyses?
+
+# Add number of studies as weight
+
+Percentage_change$weight[c(74:77)] <- Percentage_change$N_Studies[c(74:77)]
+
+unique(Percentage_change$weight) # Check it worked
+ 
+# Actually this was unnecessary
+
+```
+ 
+### Calculate weighted mean of the percentage changes weighting by the weigh 
+column. I am goung to calculate it for the following groups: 
+
+  - Maize: conservation, mixed, transgenic
+  - Cotton: mixed and transgenic
+  - Oil palm: all data on conventional
+  - Soybean: not much, can get an estimate for mixed cropping
+  - Sugarcane: conservation and conventional
+  - Potato (potentially): transgenic
+
+```{r}
+
+names(Percentage_change)
+class(Percentage_change$weight)
+class(Percentage_change$Percentage_change)
+
+Percentage_change$Percentage_change <- as.numeric(Percentage_change$Percentage_change)
+Percentage_change$weight <- as.numeric(Percentage_change$weight)
+
+weighted.mean(Percentage_change$Percentage_change, Percentage_change$weight)
+
+effect_size <- unique(d$Effect_size)  # Make list that stores data split per type 
+es_list <- list()                     # of effect size
+
+crop <- unique(Percentage_change$Crop)  # Make list that stores data split per type 
+crop_list<- list()  
+
+for (cr in crop){
+data <- dplyr :: filter( Percentage_change , Crop == cr)
+crop_list[[cr]] <- data
+}
+
+list2env( crop_list, envir = .GlobalEnv)
+
+mean_maize <- weighted.mean(Maize$Percentage_change, Maize$weight)
+
+
+```
+
+
+
+
 
 
