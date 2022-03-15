@@ -8,6 +8,7 @@
 # My files
 
 README.txt
+*.html
 
 # History files
 .Rhistory
