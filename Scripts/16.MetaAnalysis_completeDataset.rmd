@@ -151,8 +151,7 @@ Therefore, I will do the following with the available data:
 -   Log response ratio: calculate the weighted mean
 -   Percentage change: calculate the weighted mean
 -   Hedge's g: get more accurate estimates as I include more data and from more sources
-<!-- what can i do with species richness and abundance data ? -->
--   Plain species richness and abundance: calculate 
+-   Plain species richness and abundance: *think about what to do* 
 
 I will calculate the weighted mean for those crops with > 10 observations for a certain agricultural system. Which are:
 
@@ -163,9 +162,7 @@ Each review observation will be weighted as 1, because it comes from one study. 
 
 ## 3. Calculate weighted mean for the % change data
 
-<!-- Check  how means are affected when doing them with % data m  -->
-
-Since calculating the weighted mean with percentages can inflate results, I am going to transform the % change data that comes from LRR back to LRR applying the following formula. 
+Since calculating the weighted mean with percentages can deviate rhe mean, I am going to transform the % change data that comes from LRR back to LRR applying the following formula. *Check  how means are affected when doing them with % data* 
 
 $$LRR= ln((Percentage change/100) + 1)$$
 ```{r, include = FALSE}
