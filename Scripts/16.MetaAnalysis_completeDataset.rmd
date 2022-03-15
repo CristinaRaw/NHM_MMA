@@ -1,0 +1,492 @@
+---
+title: "16.MetaAnalysis_CompleteDataset"
+author: "Christina Raw"
+date: "14/3/2022"
+output: html_document
+---
+
+I am going to try to perform some kind of meta analysis using the data from the 
+data extraction spreadsheet. The data consists on measures of cropland biodiversity under different types of agricultural systems. 
+
+1.  Split data set according to type of effect size
+
+2.  Calculate weighted mean for each type of biodiversity metric
+
+```{r, message = FALSE}
+
+# Load all packages I will need:
+
+library(here) # To tell RMD where to find and store files
+library(knitr) # To make RMD tables
+library(tidyr) # To tidy data sets
+library(dplyr) # To manipulate the data sets
+library(ggplot2) # To plot
+library(ggpubr) # To arrange plots
+
+```
+
+```{r, include = FALSE}
+
+d <- read.csv2(here("Data/00.Raw_Data/05.Analysis_data", "V2_Magpie_Crops_Quantitative_spreadsheet.csv"))
+
+unique(d$Crop) # Change Bt_CropName into just CropName
+
+d$Crop[d$Crop == "Bt_Corn"]<- "Corn"
+d$Crop[d$Crop == "Bt_Potato"]<- "Potato"
+d$Crop[d$Crop == "Bt_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "Bt_Eggplant"]<- "Eggplant"
+d$Crop[d$Crop == "Bt_Rice"]<- "Rice"
+d$Crop[d$Crop == "Bt_Maize"]<- "Maize"
+d$Crop[d$Crop == "Bt_Sunflower"]<- "Sunflower"
+d$Crop[d$Crop == "Bt_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "GM_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "Bt_Broccoli"]<- "Broccoli"
+d$Crop[d$Crop == "GM_Potato"]<- "Potato"
+d$Crop[d$Crop == "GM_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "GM_Tomato"]<- "Tomato"
+d$Crop[d$Crop == "Gm_Strawberry"]<- "Strawberry"
+
+unique(d$Effect_size) # Unify effect size names 
+
+d$Effect_size[d$Effect_size == "Hedges' d"]<- "Hedges_d"
+
+which(d$Effect_size == "") # Remove useless row with no data
+d <- subset(d,d$Effect_size != "")
+
+unique(d$Crop)
+
+```
+
+## Brief data digest
+
+The data set consists of biodiversity observations under different agricultural production systems. There are the following number of observations under the different production systems for the different crops: 
+
+```{r}
+
+# See how many observations there are per crop and production system
+
+crop_reshape <- select(d, Crop, agricultural_system)
+crop_reshape <- as.data.frame(table(crop_reshape))
+
+crop_reshape <- crop_reshape %>% 
+                    group_by(Crop) %>% 
+                    pivot_wider(names_from = agricultural_system, 
+                                values_from = Freq)
+
+kable(crop_reshape, row.names = TRUE, caption = "Number of observations per per crop and production system ")
+```
+
+I am going to get estimates for any crop that has more than 10 observations for any of the production systems.  The rule of thumb for meta/analyses is 10 observations per level (in this case per crop):
+
+```{r}
+
+# Which crops have more than 10 observations for any of the agricultural production systems?
+
+focal_crops <- crop_reshape  %>% filter_at(vars(2:8), any_vars(. > 10))
+
+kable(focal_crops, row.names = TRUE, 
+      caption = "Crops with > 10 observations in one or more production system category")
+
+```
+Therefore, I am going to calculate estimates for **cassava, cotton, maize, oil palm,
+potato, rape seed, rice, soybean, straw cereals, sugarcane, sunflower and wheat**
+
+## 1. Split data set according to type of effect size
+
+```{r, results = 'hide'}
+
+# Subset crops of interest
+
+d <- d[d$Crop %in% focal_crops$Crop, ]
+
+# Split data set per type of effect size
+
+unique(d$Effect_size) #Check effect sizes are correct
+
+effect_size <- unique(d$Effect_size)  # Make list that stores the data split per type of effect size
+es_list <- list()                      
+
+for (es in effect_size){
+data <- dplyr :: filter( d , Effect_size == es)
+es_list[[es]] <- data
+}
+
+list2env(es_list, envir=.GlobalEnv)   # Make a data frame from each of the data sets in the list 
+                                      
+```
+
+So now, I have four types of data:
+
+-   Log response ratio: 34 observations
+-   Percentage change: 240 observations
+-   Hedge's g: 138 observations
+-   Plain species richness and abundance 
+    
+With Hedge's g data I can get more accurate estimates as I include more data and from more sources but I cannot really compare.
+
+With species richness and abundance data I can calculate mean but I cannot do a proper
+
+```{r, include = FALSE, eval=FALSE}
+
+write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis", "04.Percentage_change.csv"))
+write.csv(Percentage_change, here("Outputs/07.Analysis", "04.Percentage_change.csv"))
+write.csv(Hedges_d, here("Data/01.Processed_Data/05.Analysis", "05.Hedges_d.csv"))
+write.csv(Hedges_d, here("Outputs/07.Analysis", "05.Hedges_d.csv"))
+write.csv(LRR, here("Data/01.Processed_Data/05.Analysis", "06.LRR.csv"))
+write.csv(LRR, here("Outputs/07.Analysis", "06.LRR.csv"))
+
+```
+
+
+### What can I do with the data?
+
+Since the data comes from syntheses, many observations do not have variance data, which is needed to perform a statistical meta-analysis. There are two possible options:
+
+a.  If the synthesis provides an estimate and nothing else, calculate the average
+
+b.  If the synthesis provides a confidence interval or a 'sample size'(the number of comparisons or studies that were synthesized), use this information to calculate a weighted mean. 
+
+Therefore, I will do the following with the available data:
+
+-   Log response ratio: calculate the weighted mean
+-   Percentage change: calculate the weighted mean
+-   Hedge's g: get more accurate estimates as I include more data and from more sources
+<!-- what can i do with species richness and abundance data ? -->
+-   Plain species richness and abundance: calculate 
+
+I will calculate the weighted mean for those crops with > 10 observations for a certain agricultural system. Which are:
+
+  - For the % Change data: cotton, maize, oil palm, potato, rape seed, soy bean, sugar cane and sunflower. So NOT rice and NOT wheat
+  - For the LRR data: cassava, maize and straw cereal. so NOT oil palm and NOT wheat
+  
+Each review observation will be weighted as 1, because it comes from one study. Meta-analysis observations will be weighted according to the number of studies included in the meta-analysis.
+
+## 3. Calculate weighted mean for the % change data
+
+<!-- Check  how means are affected when doing them with % data m  -->
+
+Since calculating the weighted mean with percentages can inflate results, I am going to transform the % change data that comes from LRR back to LRR applying the following formula. 
+
+$$LRR= ln((Percentage change/100) + 1)$$
+```{r, include = FALSE}
+
+Percentage_change <- read.csv( here("Outputs/07.Analysis",                      # Load data
+                                    "04.Percentage_change.csv"), row.names = 1)
+
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "03.LRR.csv"), row.names = 1)
+
+```
+
+```{r}
+
+# Subset percentage change data that comes from LRR and remove those rows from the percentage change data set
+
+perc_to_lrr <- subset(Percentage_change, 
+                      Synthesis_type == "Meta-Analysis")
+
+Percentage_change <- subset(Percentage_change,
+                            Synthesis_type != "Meta-Analysis")
+
+# Back transform the percentage data that comes from LRR into % Change
+
+perc_to_lrr$Percentage_change <- as.numeric(perc_to_lrr$Percentage_change)  # Transform column class into numeric
+
+perc_to_lrr$Value = log((perc_to_lrr$Percentage_change/100) + 1) # Transform LRR into percentage change
+
+LRR <- rbind(LRR, perc_to_lrr) # rbind LRR data frames
+
+```
+
+```{r, echo = FALSE}
+
+# Digest percentage change data 
+
+perc_reshape <- select(Percentage_change, Crop, agricultural_system)
+perc_reshape <- as.data.frame(table(perc_reshape))
+
+perc_reshape <- perc_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+
+kable(perc_reshape, row.names = TRUE, caption = "Percentage change data digest")
+
+```
+
+Now that I have removed the data that come from LRR, rice and wheat crops do not have more than 10 observations for an agricultural production system, so I have to remove these crops from the data set.
+
+```{r, results = 'hide'}
+
+# Remove  crops that do not have > 10 observations for an agricultural production system
+
+unique(Percentage_change$Crop)
+Percentage_change <- subset(Percentage_change, Crop != "Rice" | Crop != "Wheat")
+
+```
+
+### Add column of weight
+
+Each review observation will be weighted as 1, because it comes from one study. Meta-analysis' observations will be weighted according to the number of studies included in the meta-analysis.
+
+```{r, message = FALSE, results = 'hide'}
+
+Percentage_change$weight <- ""  # Add empty column where I will store the weights
+
+# Add a weight of 1 to reviews
+
+unique(Percentage_change$Synthesis_type) # All data comes from reviews
+Percentage_change$weight[Percentage_change$Synthesis_type == "Review"] <- 1
+
+```
+
+### Calculate weighted mean
+
+```{r, results = 'hide'}
+
+names(Percentage_change)                # Adjust column classes to numeric
+class(Percentage_change$weight) 
+class(Percentage_change$Percentage_change)
+
+Percentage_change$weight <- as.numeric(Percentage_change$weight) 
+
+crop <- unique(Percentage_change$Crop)  # Make list that splits data per crop type 
+crop_list<- list()  
+
+for (cr in crop){
+data <- dplyr :: filter( Percentage_change , Crop == cr)
+crop_list[[cr]] <- data
+}
+
+list2env( crop_list, envir = .GlobalEnv) # Make a data frame for each crop
+
+#Calculate weighted mean
+
+mean_maize <- Maize %>%
+                group_by(agricultural_system) %>%
+                summarise(wheighted.mean = 
+                            weighted.mean(Percentage_change, weight)) %>%
+                cbind(crop = "Maize")
+  
+mean_cotton <- Cotton %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Cotton" )
+
+mean_oil <- Oil_palm %>%
+                drop_na(Percentage_change) %>%
+                group_by(agricultural_system) %>%
+                summarise(wheighted.mean = 
+                            weighted.mean(Percentage_change, weight)) %>%
+                cbind( crop = "Oil palm" )
+
+mean_sugar <- Sugarcane %>%
+                  drop_na(Percentage_change) %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Sugarcane")
+
+mean_potato <- Potato %>%
+                  drop_na(Percentage_change) %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Potato")
+
+mean_soy <- Soybean %>%
+                  drop_na(Percentage_change) %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Soybean")
+
+mean_sunflower <- Sunflower  %>%
+                  drop_na(Percentage_change) %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Soybean")
+
+mean_rape <- Rape_seed %>%
+                  drop_na(Percentage_change) %>%
+                  group_by(agricultural_system) %>%
+                  summarise(wheighted.mean = 
+                              weighted.mean(Percentage_change, weight)) %>%
+                  cbind( crop = "Rape seed")
+
+
+mean_effect <- rbind( mean_maize, mean_cotton, mean_oil, mean_soy, mean_sugar, # Merge in one data frame
+                      mean_potato, mean_sunflower, mean_rape)
+
+```
+
+```{r, echo = FALSE}
+
+mean_effect <- relocate(mean_effect, crop, .before = agricultural_system)
+
+kable(mean_effect, row.names = TRUE, caption = "% change weighted mean per crop and production system")
+
+```
+
+```{r, eval = FALSE, include = FALSE}
+
+write.csv(mean_effect, here("Data/01.Processed_Data/05.Analysis", "07.CompleteDataMeanEffect.csv"))
+write.csv(mean_effect, here("Outputs/07.Analysis", "07.CompleteDataMeanEffect.csv"))
+
+```
+
+```{r, include = FALSE}
+
+# Plot 
+
+rm(list = ls())
+gc()
+
+mean_effect <- read.csv( here("Outputs/07.Analysis",   # Load data
+                                    "07.CompleteDataMeanEffect.csv"), row.names = 1)
+
+mean_effect <- mean_effect[mean_effect$agricultural_system != "unclassified",] # Remove unclassified agricultural system
+
+unique(mean_effect$agricultural_system)
+
+```
+```{r, results = 'hide'}
+
+range(mean_effect$wheighted.mean) # Get axis limits
+unique(mean_effect$crop) # Get number of facet rows
+
+``` 
+```{r, message = FALSE}
+
+ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
+  geom_dotplot(dotsize = 0.5) +
+  facet_wrap (~ crop, nrow = 7, ncol = 1, scales = "free_x")  +
+  xlab("Wheighted mean") +
+  ylab("") +
+  scale_y_discrete(breaks=NULL) +
+  scale_x_continuous( limits = c(-80, 70)) +
+  theme( panel.background = element_blank(),
+         axis.line.x.bottom=element_line(color="black"),
+         panel.border = element_rect(colour = "black", fill = NA),
+         axis.text.x= element_text(size = 7)) +
+  geom_vline(xintercept = 0) +
+  labs(title = "Biodiveristity % change under different agricultural systems and crops")
+
+```
+
+## 4. Calculate the wheighted mean for the LRR data 
+
+```{r, include = FALSE}
+
+rm(list = ls())
+gc()
+
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "03.LRR.csv"), row.names = 1)
+
+```
+```{r, echo = FALSE}
+
+# Digest the log response ratio data
+
+lrr_reshape <- select(LRR, Crop, agricultural_system)
+lrr_reshape <- as.data.frame(table(lrr_reshape))
+
+lrr_reshape <- lrr_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+
+kable(lrr_reshape, row.names = TRUE, caption = "LRR data digest")
+```
+
+### Add column of weight
+
+Each review observation will be weighted as 1, because it comes from one study. Meta-analysis’ observations will be weighted according to the number of studies included in the meta-analysis
+
+```{r, results = FALSE}
+
+unique(LRR$Synthesis_type) # All LRR data comes from meta-analyses
+
+LRR$weight <- ""    # Add empty column where I will store the weights
+
+LRR$weight[c(1:23)] <- LRR$N_Studies[c(1:23)]  # Add number of studies as weight
+
+```
+
+### Calculate weighted mean 
+
+  - Maize: conservation and mixed
+  
+```{r, results = 'hide'}
+
+names(LRR)          # Adjust column classes to numeric
+class(LRR$weight)
+class(LRR$Value)
+
+LRR$weight <- as.numeric(LRR$weight)
+
+maize  <- subset(LRR, LRR$Crop == "Maize")  # Subset maize data
+
+#Calculate weighted mean
+
+mean_maize <- maize %>%
+                group_by(agricultural_system) %>%
+                summarise(wheighted.mean = 
+                            weighted.mean(Value, weight)) %>%
+                cbind(crop = "Maize")
+```
+
+I also want to show the weighted mean back transformed into percentage. I can back transform LRR into percentage applying the following formula: 
+
+$$Percentage Change = 100 * e^{LRR} - 1$$
+```{r}
+
+# Add back transformed value into percentage 
+
+mean_maize <- mutate(mean_maize, Percentage = 100 * (exp(wheighted.mean) - 1))
+
+```
+
+```{r, echo = FALSE}
+
+mean_maize <- relocate(mean_maize, crop, .before = agricultural_system)
+
+kable(mean_maize, row.names = TRUE, caption = "LRR weighted mean")
+
+```
+  
+```{r, message = FALSE}
+
+LRR_plot <- ggplot( mean_maize, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
+  geom_dotplot(dotsize = 0.5) +
+  xlab("LRR weighted mean") +
+  ylab("") +
+  scale_y_discrete(breaks=NULL) +
+  scale_x_continuous( breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7)) +
+  theme( panel.background = element_blank(),
+         axis.line.x.bottom=element_line(color="black"),
+         panel.border = element_rect(colour = "black", fill = NA),
+         axis.text.x= element_text(size = 7),
+         plot.title =  element_text(hjust = 0.5)) +
+  geom_vline(xintercept = 0) +
+  coord_fixed(ratio = 0.025) +
+  labs(title = "Biodiveristity LRR under different maize agricultural systems")
+
+perc_plot <- ggplot( mean_maize, aes(Percentage, size = 1, fill = agricultural_system)) +
+  geom_dotplot(dotsize = 0.5) +
+  xlab("% Change weighted mean") +
+  ylab("") +
+  scale_y_discrete(breaks=NULL) +
+  scale_x_continuous( breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) + 
+  theme( panel.background = element_blank(),
+         axis.line.x.bottom=element_line(color="black"),
+         panel.border = element_rect(colour = "black", fill = NA),
+         axis.text.x= element_text(size = 7),
+         plot.title =  element_text(vjust = 10, hjust = 0)) +
+  geom_vline(xintercept = 0) +
+  coord_fixed(ratio = 3.5) +
+  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems")
+
+ggarrange(LRR_plot, perc_plot, ncol = 1)
+
+```
+
+
+
