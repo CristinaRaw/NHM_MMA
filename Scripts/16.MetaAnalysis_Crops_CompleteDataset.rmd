@@ -8,11 +8,15 @@ output: html_document
 I am going to try to perform some kind of meta analysis using the data from the 
 data extraction spreadsheet. The data consists on measures of cropland biodiversity under different types of agricultural systems. 
 
-1.  Split data set according to type of effect size
+1.    Split data set according to type of effect size
+2.    Calculate the weighted mean for the % change data
+- % Change weighted mean estimates
+- % Change plotted means
+3.    Calculate the weighted mean for the LRR data 
+- LRR weighted mean estimates
+- LRR plotted means
 
-2.  Calculate weighted mean for each type of biodiversity metric
-
-```{r, message = FALSE}
+```{r, results = 'hide', warning = FALSE, message = FALSE }
 
 # Load all packages I will need:
 
@@ -122,10 +126,6 @@ So now, I have four types of data:
 -   Hedge's g: 138 observations
 -   Plain species richness and abundance 
     
-With Hedge's g data I can get more accurate estimates as I include more data and from more sources but I cannot really compare.
-
-With species richness and abundance data I can calculate mean but I cannot do a proper
-
 ```{r, include = FALSE, eval=FALSE}
 
 write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis", "04.Percentage_change.csv"))
@@ -139,6 +139,10 @@ write.csv(LRR, here("Outputs/07.Analysis", "06.LRR.csv"))
 
 
 ### What can I do with the data?
+
+With Hedge's g data I can get more accurate estimates as I include more data and from more sources but I cannot really compare.
+
+With species richness and abundance data I can calculate mean but I cannot do a proper
 
 Since the data comes from syntheses, many observations do not have variance data, which is needed to perform a statistical meta-analysis. There are two possible options:
 
@@ -160,17 +164,20 @@ I will calculate the weighted mean for those crops with > 10 observations for a 
   
 Each review observation will be weighted as 1, because it comes from one study. Meta-analysis observations will be weighted according to the number of studies included in the meta-analysis.
 
-## 3. Calculate weighted mean for the % change data
+## 2. Calculate weighted mean for the % change data
 
-Since calculating the weighted mean with percentages can deviate rhe mean, I am going to transform the % change data that comes from LRR back to LRR applying the following formula. *Check  how means are affected when doing them with % data* 
+Since calculating the weighted mean with percentages can deviate rhe mean, I am going to transform the % change data that comes from LRR back to LRR applying the following formula:  *Check  how means are affected when doing them with % data* 
 
 $$LRR= ln((Percentage change/100) + 1)$$
 ```{r, include = FALSE}
 
+rm(list = ls())
+gc()
+
 Percentage_change <- read.csv( here("Outputs/07.Analysis",                      # Load data
                                     "04.Percentage_change.csv"), row.names = 1)
 
-LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "03.LRR.csv"), row.names = 1)
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "06.LRR.csv"), row.names = 1)
 
 ```
 
@@ -352,6 +359,9 @@ range(mean_effect$wheighted.mean) # Get axis limits
 unique(mean_effect$crop) # Get number of facet rows
 
 ``` 
+
+### Plot
+
 ```{r, message = FALSE}
 
 ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
@@ -370,16 +380,17 @@ ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) 
 
 ```
 
-## 4. Calculate the wheighted mean for the LRR data 
+## 3. Calculate the wheighted mean for the LRR data 
 
 ```{r, include = FALSE}
 
 rm(list = ls())
 gc()
 
-LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "03.LRR.csv"), row.names = 1)
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis", "06.LRR.csv"), row.names = 1)
 
 ```
+
 ```{r, echo = FALSE}
 
 # Digest the log response ratio data
@@ -393,6 +404,18 @@ lrr_reshape <- lrr_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agric
 kable(lrr_reshape, row.names = TRUE, caption = "LRR data digest")
 ```
 
+```{r, include = FALSE}
+
+### Back transform some percentage data in the data frame into LRR
+# Some data in the LRR data frame is in percentage format, I have to back transform it # into LRR.
+
+perc_to_lrr <- LRR[5:7, 38]  # Subset % change data to be back transformed
+
+perc_to_lrr <- log((perc_to_lrr/100) +1)  # Back transform into LRR
+
+LRR[5:7, 37] <- perc_to_lrr  # Input values in the LRR data frame
+```
+
 ### Add column of weight
 
 Each review observation will be weighted as 1, because it comes from one study. Meta-analysis’ observations will be weighted according to the number of studies included in the meta-analysis
@@ -403,13 +426,14 @@ unique(LRR$Synthesis_type) # All LRR data comes from meta-analyses
 
 LRR$weight <- ""    # Add empty column where I will store the weights
 
-LRR$weight[c(1:23)] <- LRR$N_Studies[c(1:23)]  # Add number of studies as weight
+LRR$weight[c(1:34)] <- LRR$N_Studies[c(1:34)]  # Add number of studies as weight
 
 ```
 
 ### Calculate weighted mean 
 
   - Maize: conservation and mixed
+  - Straw cereals: conservation
   
 ```{r, results = 'hide'}
 
@@ -420,6 +444,7 @@ class(LRR$Value)
 LRR$weight <- as.numeric(LRR$weight)
 
 maize  <- subset(LRR, LRR$Crop == "Maize")  # Subset maize data
+straw <- subset(LRR, LRR$Crop == "Straw_cereals")
 
 #Calculate weighted mean
 
@@ -428,6 +453,15 @@ mean_maize <- maize %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Value, weight)) %>%
                 cbind(crop = "Maize")
+
+mean_straw <- straw %>%
+                group_by(agricultural_system) %>%
+                summarise(wheighted.mean = 
+                            weighted.mean(Value, weight)) %>%
+                cbind(crop = "Straw cereals")
+
+mean_effect <- rbind( mean_maize, mean_straw)  # Rbind into one data frame
+
 ```
 
 I also want to show the weighted mean back transformed into percentage. I can back transform LRR into percentage applying the following formula: 
@@ -437,22 +471,32 @@ $$Percentage Change = 100 * e^{LRR} - 1$$
 
 # Add back transformed value into percentage 
 
-mean_maize <- mutate(mean_maize, Percentage = 100 * (exp(wheighted.mean) - 1))
+mean_effect <- mutate(mean_effect, Percentage = 100 * (exp(wheighted.mean) - 1))
 
 ```
 
+```{r, include = FALSE}
+
+# Save, for script 19 purposes
+
+write.csv(mean_effect, here("Data/01.Processed_Data/05.Analysis", "07.LRR_CompleteDataMeanEffect.csv"))
+
+```
 ```{r, echo = FALSE}
 
-mean_maize <- relocate(mean_maize, crop, .before = agricultural_system)
+mean_effect <- relocate(mean_effect, crop, .before = agricultural_system)
 
-kable(mean_maize, row.names = TRUE, caption = "LRR weighted mean")
+kable(mean_effect, row.names = TRUE, caption = "LRR weighted mean")
 
 ```
   
+### Plot
+
 ```{r, message = FALSE}
 
-LRR_plot <- ggplot( mean_maize, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
+LRR_plot <- ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
+  facet_wrap (~ crop, nrow = 3, ncol = 1) +
   xlab("LRR weighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
@@ -460,26 +504,25 @@ LRR_plot <- ggplot( mean_maize, aes(wheighted.mean, size = 1, fill = agricultura
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7),
-         plot.title =  element_text(hjust = 0.5)) +
+         axis.text.x= element_text(size = 7)) +
   geom_vline(xintercept = 0) +
-  coord_fixed(ratio = 0.025) +
-  labs(title = "Biodiveristity LRR under different maize agricultural systems")
+  labs(title = "Biodiveristity LRR under different maize agricultural systems") +
+  coord_fixed( ratio = 0.025)
 
-perc_plot <- ggplot( mean_maize, aes(Percentage, size = 1, fill = agricultural_system)) +
+perc_plot <- ggplot( mean_effect, aes(Percentage, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
+  facet_wrap (~ crop, nrow = 3, ncol = 1) +
   xlab("% Change weighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
-  scale_x_continuous( breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) + 
+  scale_x_continuous( breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) +
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7),
-         plot.title =  element_text(vjust = 10, hjust = 0)) +
+         axis.text.x= element_text(size = 7)) +
   geom_vline(xintercept = 0) +
-  coord_fixed(ratio = 3.5) +
-  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems")
+  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems") +
+  coord_fixed( ratio = 3.5)
 
 ggarrange(LRR_plot, perc_plot, ncol = 1)
 
