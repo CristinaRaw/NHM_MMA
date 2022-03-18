@@ -1,5 +1,5 @@
 ---
-title: "18.MetaAnalysis_MagpieClasses_completeDataset"
+title: "17.VividEconomics_Magpie_MetaAnalysis"
 author: "Christina Raw"
 date: "17/3/2022"
 output: html_document
@@ -9,7 +9,27 @@ This time, I am going to estimate the weighed mean of biodiversity under differe
 
 ![](Images/MagpieCategories.png)
 
-```{r, results = 'hide', warning = FALSE, message = FALSE }
+In this script, I will focus on the crops Vivid Economics' are interested in: 
+
+-   Maize
+-   Cotton
+-   Oil palm
+-   Soybean
+-   Sugar cane
+-   Fruits, Nuts, Vegetables
+
+Steps: 
+
+1.    Split data set according to type of effect size
+2.    Calculate the weighted mean for the % change data
+- % Change weighted mean estimates
+- % Change plotted means
+3.    Calculate the weighted mean for the LRR data 
+- LRR weighted mean estimates
+- LRR plotted means
+
+
+```{r, results = 'hide', warning = FALSE, message = FALSE}
 
 # Load all packages I will need:
 
@@ -22,19 +42,12 @@ library(ggpubr) # To arrange plots
 
 ```
 
-Steps: 
-
-1.    Split data set according to type of effect size
-2.    Calculate the weighted mean for the % change data
-- % Change weighted mean estimates
-- % Change plotted means
-3.    Calculate the weighted mean for the LRR data 
-- LRR weighted mean estimates
-- LRR plotted means
-
 ```{r, include = FALSE}
 
 d <- read.csv2(here("Data/00.Raw_Data/05.Analysis_data", "V2_Magpie_Crops_Quantitative_spreadsheet.csv"))
+
+library(writexl)
+library
 
 unique(d$Crop) # Change Bt_CropName into just CropName
 
@@ -60,64 +73,88 @@ d$Effect_size[d$Effect_size == "Hedges' d"]<- "Hedges_d"
 which(d$Effect_size == "") # Remove useless row with no data
 d <- subset(d,d$Effect_size != "")
 
-unique(d$Crop)
+d <- subset(d, d$Crop == "Maize"|   # Subset data of the crops Vivid  Evonomics
+            d$Crop == "Cotton"|     # are interested in
+            d$Crop == "Oil_palm"|
+            d$Crop == "Soybean"|
+            d$Crop == "Sugarcane"|
+            d$Crop == "Strawberry"|
+            d$Crop == "Broccoli"|
+            d$Crop == "Tomato"|
+            d$Crop == "Potato"|
+            d$Crop == "Eggplant")
 
 ```
 
 For these commodities, there are the following number of observations under the different production systems:
 
-```{r}
+```{r, message = FALSE, echo = FALSE}
 
-# See how many observations there are per crop and production system
+# See how many observations per crop and production system
 
 crop_reshape <- select(d, magpie_class, agricultural_system)
 crop_reshape <- as.data.frame(table(crop_reshape))
 
-crop_reshape <- crop_reshape %>% 
-                    group_by(magpie_class) %>% 
-                    pivot_wider(names_from = agricultural_system, 
-                                values_from = Freq)
+crop_reshape <- crop_reshape %>% group_by(magpie_class) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
 
 kable(crop_reshape, row.names = TRUE, caption = "Number of observations per per crop and production system ")
+
+
 ```
 
-I am going to get estimates for any commodity that has more than 10 observations for any of the production systems.  The rule of thumb for meta-analyses is 10 observations per level (in this case per commodity). In this case , all commodities have more than ten observations for an agricultural system.
+I am going to get estimates for any commodity that has more than 10 observations for any of the production systems.  The rule of thumb for meta-analyses is 10 observations per level (in this case per commodity):
+
+```{r}
+
+focal_crops <- crop_reshape  %>% filter_at(vars(2:7), any_vars(. > 10))
+
+kable(focal_crops, row.names = TRUE, 
+      caption = "Crops with > 10 observations in one or more production system category")
+
+```
+
+Therefore, I am going to calculate estimates for cereals, oil crops, other annual crops and sugar.
 
 ## 1. Split data set according to type of effect size
 
 ```{r, results = 'hide'}
 
+# Subset crops of interest
+
+d <- d[d$magpie_class %in% focal_crops$magpie_class, ]
+
 # Split data set per type of effect size
 
 unique(d$Effect_size) #Check effect sizes are correct
 
-effect_size <- unique(d$Effect_size)  # Make list that stores the data split per type of effect size
-es_list <- list()                      
+effect_size <- unique(d$Effect_size)  # Make list that stores data split per type 
+es_list <- list()                     # of effect size
 
 for (es in effect_size){
 data <- dplyr :: filter( d , Effect_size == es)
 es_list[[es]] <- data
 }
 
-list2env(es_list, envir=.GlobalEnv)   # Make a data frame from each of the data sets in the list 
-                                      
+list2env(es_list, envir=.GlobalEnv)   # Make a data frame of each of the data 
+                                      # sets in the list  
 ```
 
 So now, I have four types of data:
 
--   Log response ratio: 48 observations
--   Percentage change: 287 observations
--   Hedge's g: 171 observations
+-   Log response ratio: 23 observations
+-   Percentage change: 193 observations
+-   Hedge's g: 138 observations
 -   Plain species richness and abundance
 
-```{r, include = FALSE, eval=FALSE}
+```{r, include = FALSE}
 
-write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "04.Percentage_change.csv"))
-write.csv(Percentage_change, here("Outputs/07.Analysis/01.Magpie", "04.Percentage_change.csv"))
-write.csv(Hedges_d, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "05.Hedges_d.csv"))
-write.csv(Hedges_d, here("Outputs/07.Analysis/01.Magpie", "05.Hedges_d.csv"))
-write.csv(LRR, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "06.LRR.csv"))
-write.csv(LRR, here("Outputs/07.Analysis/01.Magpie", "06.LRR.csv"))
+write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "01.Percentage_change.csv"))
+write.csv(Percentage_change, here("Outputs/07.Analysis/01.Magpie", "01.Percentage_change.csv"))
+write.csv(Hedges_d, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "02.Hedges_d.csv"))
+write.csv(Hedges_d, here("Outputs/07.Analysis/01.Magpie", "02.Hedges_d.csv"))
+write.csv(LRR, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "03.LRR.csv"))
+write.csv(LRR, here("Outputs/07.Analysis/01.Magpie", "03.LRR.csv"))
 
 ```
 
@@ -158,10 +195,8 @@ $$LRR= ln((Percentage change/100) + 1)$$
 rm(list = ls())
 gc()
 
-Percentage_change <- read.csv( here("Outputs/07.Analysis/01.Magpie",                      # Load data
-                                    "04.Percentage_change.csv"), row.names = 1)
-
-LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis/01.Magpie", "06.LRR.csv"), row.names = 1)
+Percentage_change <- read.csv( here("Outputs/07.Analysis/01.Magpie", "01.Percentage_change.csv"), row.names = 1)
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis/01.Magpie", "03.LRR.csv"), row.names = 1)
 
 ```
 
@@ -186,6 +221,16 @@ LRR <- rbind(LRR, perc_to_lrr) # rbind LRR data frames
 
 ```
 
+```{r, include = FALSE, eval = FALSE}
+
+# Save new data frames
+
+write.csv(Percentage_change, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "01.Percentage_change.csv"))
+write.csv(Percentage_change, here("Outputs/07.Analysis/01.Magpie", "01.Percentage_change.csv"))
+write.csv(LRR, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "03.LRR.csv"))
+write.csv(LRR, here("Outputs/07.Analysis/01.Magpie", "03.LRR.csv"))
+```
+
 ```{r, echo = FALSE}
 
 # Digest percentage change data 
@@ -200,12 +245,13 @@ kable(perc_reshape, row.names = TRUE, caption = "Percentage change data digest")
 
 ```
 
-```{r, results = 'hide'}
 
-# Remove  crops that do not have > 10 observations for an agricultural production system
+```{r, include = FALSE}
 
-unique(Percentage_change$Crop)
-Percentage_change <- subset(Percentage_change, magpie_class != "Other perennial crops")
+rm(list=ls())
+gc()
+
+Percentage_change <- read.csv( here("Outputs/07.Analysis/01.Magpie", "01.Percentage_change.csv"), row.names = 1)
 
 ```
 
@@ -213,13 +259,13 @@ Percentage_change <- subset(Percentage_change, magpie_class != "Other perennial 
 
 Each review observation will be weighted as 1, because it comes from one study. Meta-analysis' observations will be weighted according to the number of studies included in the meta-analysis.
 
-```{r, message = FALSE, results = 'hide'}
+```{r, results = 'hide'}
 
-Percentage_change$weight <- ""  # Add empty column where I will store the weights
+Percentage_change$weight <- ""   # Add empty column where I will store the weights
 
 # Add a weight of 1 to reviews
 
-unique(Percentage_change$Synthesis_type) # All data comes from reviews
+unique(Percentage_change$Synthesis_type) # All data comes from review
 Percentage_change$weight[Percentage_change$Synthesis_type == "Review"] <- 1
 
 ```
@@ -228,13 +274,14 @@ Percentage_change$weight[Percentage_change$Synthesis_type == "Review"] <- 1
 
 ```{r, results = 'hide'}
 
-names(Percentage_change)                # Adjust column classes to numeric
-class(Percentage_change$weight) 
+names(Percentage_change)                 # Adjust column classes to number
+class(Percentage_change$weight)
 class(Percentage_change$Percentage_change)
 
-Percentage_change$weight <- as.numeric(Percentage_change$weight) 
+Percentage_change$weight <- as.numeric(Percentage_change$weight)
+Percentage_change$Percentage_change <- as.numeric(Percentage_change$Percentage_change)
 
-magpie_class <- unique(Percentage_change$magpie_class)  # Make list that splits data per crop type 
+magpie_class <- unique(Percentage_change$magpie_class)   # Make list that stores data split per type 
 magpie_list<- list()  
 
 for (mg in magpie_class){
@@ -244,50 +291,58 @@ magpie_list[[mg]] <- data
 
 list2env( magpie_list, envir = .GlobalEnv) # Make a data frame for each crop
 
-#Calculate weighted mean
+# Calculate weighted mean
 
-oil_crops <- `Oil crops`[!is.na(`Oil crops`$Percentage_change),]
+oil_crops <- `Oil crops`[!is.na(`Oil crops`$Percentage_change),] # Remove NA columns
 mean_oil <- oil_crops %>%
                 group_by(agricultural_system) %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Percentage_change, weight)) %>%
                 cbind(crop = "Oil crops")
-  
-other_annual <- `Other annual crops`[!is.na(`Other annual crops`$Percentage_change),]
-mean_annual <- other_annual %>%
+
+
+other_annual <- `Other annual crops`[!is.na(`Other annual crops`$Percentage_change),] # Remove NA columns
+mean_other_annual <- other_annual %>%
                   group_by(agricultural_system) %>%
                   summarise(wheighted.mean = 
                               weighted.mean(Percentage_change, weight)) %>%
                   cbind( crop = "Other annual crops" )
 
-cereals <- Cereals[!is.na(Cereals$Percentage_change),]
+
+cereals <- Cereals[!is.na(Cereals$Percentage_change),] # Remove NA columns
 mean_cereals <- cereals %>%
                 drop_na(Percentage_change) %>%
                 group_by(agricultural_system) %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Percentage_change, weight)) %>%
-                cbind( crop = "Cereals" )
+                cbind( crop = "Cerelas" )
 
-sugar <- `Sugar Crops`[!is.na(`Sugar Crops`$Percentage_change),]
+sugar <- `Sugar Crops`[!is.na(`Sugar Crops`$Percentage_change),] # Remove NA columns
 mean_sugar <- sugar %>%
-                  drop_na(Percentage_change) %>%
-                  group_by(agricultural_system) %>%
-                  summarise(wheighted.mean = 
-                              weighted.mean(Percentage_change, weight)) %>%
-                  cbind( crop = "Sugarcane")
+                drop_na(Percentage_change) %>%
+                group_by(agricultural_system) %>%
+                summarise(wheighted.mean = 
+                            weighted.mean(Percentage_change, weight)) %>%
+                cbind( crop = "Sugar" )
 
-mean_effect <- rbind( mean_oil, mean_cereals, mean_annual, mean_sugar)
+mean_effect <- rbind( mean_other_annual, mean_cereals, mean_oil, mean_sugar ) # Merge in one data frame
+
+```
+
+```{r, echo = FALSE}
+
+mean_effect <- relocate(mean_effect, crop, .before = agricultural_system)
+
+kable(mean_effect, row.names = TRUE, caption = "% change weighted mean per crop and production system")
 
 ```
 
 ```{r, eval = FALSE, include = FALSE}
 
-write.csv(mean_effect, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "07.CompleteDataMeanEffect.csv"))
-write.csv(mean_effect, here("Outputs/07.Analysis/01.Magpie", "07.CompleteDataMeanEffect.csv"))
+write.csv(mean_effect, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "08.VividEconomicsMeanEffect.csv"))
+write.csv(mean_effect, here("Outputs/07.Analysis/01.Magpie", "08.VividEconomicsMeanEffect.csv"))
 
 ```
-
-### Plot
 
 ```{r, include = FALSE}
 
@@ -297,7 +352,7 @@ rm(list = ls())
 gc()
 
 mean_effect <- read.csv( here("Outputs/07.Analysis/01.Magpie",   # Load data
-                                    "07.CompleteDataMeanEffect.csv"), row.names = 1)
+                                    "08.VividEconomicsMeanEffect.csv"), row.names = 1)
 
 mean_effect <- mean_effect[mean_effect$agricultural_system != "unclassified",] # Remove unclassified agricultural system
 
@@ -310,26 +365,29 @@ unique(mean_effect$agricultural_system)
 range(mean_effect$wheighted.mean) # Get axis limits
 unique(mean_effect$crop) # Get number of facet rows
 
-``` 
+```
+
+### Plot 
 
 ```{r, message = FALSE}
 
 ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
-  facet_wrap (~ crop, nrow = 7, ncol = 1, scales = "free_x")  +
+  facet_wrap (~ crop, nrow = 5, ncol = 1, scales = "free_x") + 
   xlab("Wheighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
-  scale_x_continuous( limits = c(-80, 70)) +
+  scale_x_continuous( limits = c(-80, 70), breaks= c(-80,-35, -19, -2, 0, 5, 13, 15, 67)) +
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
+         panel.spacing.y=unit(1.5, "lines"),
          panel.border = element_rect(colour = "black", fill = NA),
          axis.text.x= element_text(size = 7)) +
-  geom_vline(xintercept = 0) +
+   geom_vline(xintercept = 0) +
   labs(title = "Biodiveristity % change under different agricultural systems and crops")
 
-```
 
+```
 
 ## 3. Calculate the wheighted mean for the LRR data 
 
@@ -338,7 +396,7 @@ ggplot( mean_effect, aes(wheighted.mean, size = 1, fill = agricultural_system)) 
 rm(list = ls())
 gc()
 
-LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis/01.Magpie", "06.LRR.csv"), row.names = 1)
+LRR <- read.csv(here("Data/01.Processed_Data/05.Analysis/01.Magpie", "03.LRR.csv"), row.names = 1)
 
 ```
 
@@ -352,7 +410,8 @@ lrr_reshape <- as.data.frame(table(lrr_reshape))
 lrr_reshape <- lrr_reshape %>% group_by(magpie_class) %>% pivot_wider(names_from = agricultural_system,
                                           values_from = Freq)
 
-kable(lrr_reshape, row.names = TRUE, caption = "LRR data digest")
+kable(lrr_reshape, row.names = TRUE, caption = "LRR change data digest")
+
 ```
 
 ```{r, include = FALSE}
@@ -360,42 +419,39 @@ kable(lrr_reshape, row.names = TRUE, caption = "LRR data digest")
 ### Back transform some percentage data in the data frame into LRR
 # Some data in the LRR data frame is in percentage format, I have to back transform it # into LRR.
 
-perc_to_lrr <- LRR[9:13, 38]  # Subset % change data to be back transformed
+perc_to_lrr <- LRR[5:7, 38]  # Subset % change data to be back transformed
 
 perc_to_lrr <- log((perc_to_lrr/100) +1)  # Back transform into LRR
 
-LRR[9:13, 37] <- perc_to_lrr  # Input values in the LRR data frame
+LRR[5:7, 37] <- perc_to_lrr  # Input values in the LRR data frame
+
 ```
 
 ### Add column of weight
 
 Each review observation will be weighted as 1, because it comes from one study. Meta-analysis’ observations will be weighted according to the number of studies included in the meta-analysis
 
-```{r, results = FALSE}
+```{r, results = 'hide'}
 
 unique(LRR$Synthesis_type) # All LRR data comes from meta-analyses
 
-LRR$weight <- ""    # Add empty column where I will store the weights
+LRR$weight <- ""  # Add empty column where I will store the weights
 
-LRR$weight[c(1:48)] <- LRR$N_Studies[c(1:48)]  # Add number of studies as weight
+LRR$weight[c(1:23)] <- LRR$N_Studies[c(1:23)]  # Add number of studies as weight
 
 ```
 
-### Calculate weighted mean 
 
-  - Maize: conservation and mixed
-  - Straw cereals: conservation
-  
 ```{r, results = 'hide'}
 
-names(LRR)          # Adjust column classes to numeric
+names(LRR)                  # Adjust column classes to numeric
 class(LRR$weight)
 class(LRR$Value)
 
 LRR$weight <- as.numeric(LRR$weight)
 
-cereals  <- subset(LRR, LRR$magpie_class == "Cereals")  # Subset maize data
-
+unique(LRR$magpie_class)
+cereals  <- subset(LRR, LRR$magpie_class == "Cereals") # Subset maize data
 
 #Calculate weighted mean
 
@@ -404,28 +460,27 @@ mean_cereals <- cereals %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Value, weight)) %>%
                 cbind(crop = "Cereals")
-
 ```
-
-
 I also want to show the weighted mean back transformed into percentage. I can back transform LRR into percentage applying the following formula: 
 
 $$Percentage Change = 100 * e^{LRR} - 1$$
 ```{r}
 
-# Add back transformed value into percentage 
+# Add column of back transformed LRR into percentage 
 
 mean_cereals <- mutate(mean_cereals, Percentage = 100 * (exp(wheighted.mean) - 1))
 
 ```
 
-```{r, include = FALSE }
+```{r, eval = FALSE, include = FALSE}
 
-# Save for code 19 purposes
+#Save
 
-write.csv(mean_cereals, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "07.LRR_CompleteDataMeanEffect.csv"))
+write.csv(mean_cereals, here("Data/01.Processed_Data/05.Analysis/01.Magpie", "08.VividEconomicsMeanCereals.csv"))
+write.csv(mean_cereals, here("Outputs/07.Analysis/01.Magpie", "08.VividEconomicsMeanCereals.csv"))
 
 ```
+
 
 ```{r, echo = FALSE}
 
@@ -434,14 +489,13 @@ mean_cereals <- relocate(mean_cereals, crop, .before = agricultural_system)
 kable(mean_cereals, row.names = TRUE, caption = "LRR weighted mean")
 
 ```
-  
-### Plot
+
+## Plot 
 
 ```{r, message = FALSE}
 
 LRR_plot <- ggplot( mean_cereals, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
-  facet_wrap (~ crop, nrow = 3, ncol = 1) +
   xlab("LRR weighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
@@ -449,30 +503,28 @@ LRR_plot <- ggplot( mean_cereals, aes(wheighted.mean, size = 1, fill = agricultu
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7)) +
+         axis.text.x= element_text(size = 7),
+         plot.title =  element_text(hjust = 0.5)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Biodiveristity LRR under different maize agricultural systems") +
-  coord_fixed( ratio = 0.025)
+  coord_fixed(ratio = 0.025) +
+  labs(title = "Biodiveristity LRR under different maize agricultural systems")
 
 perc_plot <- ggplot( mean_cereals, aes(Percentage, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
-  facet_wrap (~ crop, nrow = 3, ncol = 1) +
   xlab("% Change weighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
-  scale_x_continuous( breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) +
+  scale_x_continuous( breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) + 
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7)) +
+         axis.text.x= element_text(size = 7),
+         plot.title =  element_text(vjust = 10, hjust = 0)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems") +
-  coord_fixed( ratio = 3.5)
+  coord_fixed(ratio = 3.5) +
+  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems")
 
 ggarrange(LRR_plot, perc_plot, ncol = 1)
-
 ```
-
-
 
 

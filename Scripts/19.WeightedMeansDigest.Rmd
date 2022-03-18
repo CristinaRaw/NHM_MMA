@@ -5,6 +5,21 @@ date: "17/3/2022"
 output: html_document
 ---
 
+Here I present a summary of biodiversity weighted means under different crops and agricultural systems. First, I present the results focusing on the crops Vivid Economics are interested in. Then, I present the results for the whole data set. 
+Within each section, I calculate the weighted means at crop level and at commodity level. I used Magpie´s commodity classification, which are FAO's commodities slightly modified:
+
+![Magpie commodities](Images/MagpieCategories.png)
+
+Table of contents:
+
+1. Vivid Economics
+  - Crops weighted means for Vivid Economics focal crops
+  - Magpie classes weighted means for Vivid Economics focal crops
+  
+2. Whole data set:
+  - Crops weighted means for the whole data set
+  - Magpie classes weighted means for the whole data set
+
 ```{r, include = FALSE}
 
 # Load all packages I will need:
@@ -128,12 +143,14 @@ ggplot( magpie_percentage_vivid, aes(wheighted.mean, size = 1, fill = agricultur
   scale_y_discrete(breaks=NULL) +
   scale_x_continuous( limits = c(-80, 70), breaks= c(-80,-35, -19, -2, 0, 5, 13, 15, 67)) +
   theme( panel.background = element_blank(),
-         axis.line.x.bottom=element_line(color="black"),
-         panel.spacing.y=unit(1.5, "lines"),
+         axis.line.x.bottom= element_line(color="black"),
+         panel.spacing.y= unit(1.5, "lines"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7)) +
+         axis.text.x= element_text(size = 7),
+         plot.caption = element_text(hjust = -0.05)) +
    geom_vline(xintercept = 0) +
-  labs(title = "Biodiveristity % change under different agricultural systems and crops")
+  labs(title = "Biodiveristity % change under different agricultural systems and crops",
+       caption = "Cereals: maize; Oil crops: oil palm, cotton, soybean; Other annual crops: potato, broccoli, totmato; Sugar crops: sugarcane")
 
   # LRR data and back-transformed LRR data
 
@@ -239,7 +256,7 @@ perc_plot <- ggplot( LRR, aes(Percentage, size = 1, fill = agricultural_system))
          panel.border = element_rect(colour = "black", fill = NA),
          axis.text.x= element_text(size = 7)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Back transformed biodiversity LRR under different cereal agricultural systems") +
+  labs(title = "Back transformed biodiversity LRR under different maize and straw agricultural systems") +
   coord_fixed( ratio = 3.5)
 
 ggarrange(LRR_plot, perc_plot, ncol = 1)
@@ -268,7 +285,7 @@ kbl(magpie_LRR, caption = "Biodiveristity LRR under different cereal agricultura
 
 ggplot( magpie_perc, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
-  facet_wrap (~ crop, nrow = 7, ncol = 1, scales = "free_x")  +
+  facet_wrap (~ crop, nrow = 7, ncol = 1)  +
   xlab("Wheighted mean") +
   ylab("") +
   scale_y_discrete(breaks=NULL) +
@@ -276,9 +293,13 @@ ggplot( magpie_perc, aes(wheighted.mean, size = 1, fill = agricultural_system)) 
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7)) +
+         axis.text.x= element_text(size = 7),
+         plot.caption = element_text(hjust = -0.05)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Biodiveristity % change under different agricultural systems and crops")
+  labs(title = "Biodiveristity % change under different agricultural systems and crops",
+       caption = "Cereals: maize, wheat, barley, sorghum, rice; Oil crops: oil palm, sunflower, cotton, soybean, rape seed; 
+       Other annual crops: potato, corn, broccoli, tomato; Sugar crops: sugarcane, sugarbeet") +
+  coord_fixed( ratio = 3)
 
 LRR_plot <- ggplot( magpie_LRR, aes(wheighted.mean, size = 1, fill = agricultural_system)) +
   geom_dotplot(dotsize = 0.5) +
@@ -290,9 +311,11 @@ LRR_plot <- ggplot( magpie_LRR, aes(wheighted.mean, size = 1, fill = agricultura
   theme( panel.background = element_blank(),
          axis.line.x.bottom=element_line(color="black"),
          panel.border = element_rect(colour = "black", fill = NA),
-         axis.text.x= element_text(size = 7)) +
+         axis.text.x= element_text(size = 7),
+         plot.caption = element_text(hjust = -0.05)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Biodiveristity LRR under different cereal agricultural systems") +
+  labs(title = "Biodiveristity LRR under different cereal agricultural systems",
+       caption = "Cereals: maize, wheat, barley, sorghum, rice") +
   coord_fixed( ratio = 0.025)
 
 perc_plot <- ggplot( magpie_LRR, aes(Percentage, size = 1, fill = agricultural_system)) +
@@ -307,7 +330,7 @@ perc_plot <- ggplot( magpie_LRR, aes(Percentage, size = 1, fill = agricultural_s
          panel.border = element_rect(colour = "black", fill = NA),
          axis.text.x= element_text(size = 7)) +
   geom_vline(xintercept = 0) +
-  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems") +
+  labs(title = "Back transformed biodiversity LRR under different maize agricultural systems", caption = "Cereals: maize, wheat, barley, sorghum, rice") +
   coord_fixed( ratio = 3.5)
 
 ggarrange(LRR_plot, perc_plot, ncol = 1)
