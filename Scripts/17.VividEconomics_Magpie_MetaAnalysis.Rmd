@@ -295,7 +295,7 @@ list2env( magpie_list, envir = .GlobalEnv) # Make a data frame for each crop
 
 oil_crops <- `Oil crops`[!is.na(`Oil crops`$Percentage_change),] # Remove NA columns
 mean_oil <- oil_crops %>%
-                group_by(agricultural_system) %>%
+                group_by(magpie_class) %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Percentage_change, weight)) %>%
                 cbind(crop = "Oil crops")
@@ -303,7 +303,7 @@ mean_oil <- oil_crops %>%
 
 other_annual <- `Other annual crops`[!is.na(`Other annual crops`$Percentage_change),] # Remove NA columns
 mean_other_annual <- other_annual %>%
-                  group_by(agricultural_system) %>%
+                  group_by(magpie_class) %>%
                   summarise(wheighted.mean = 
                               weighted.mean(Percentage_change, weight)) %>%
                   cbind( crop = "Other annual crops" )
@@ -312,7 +312,7 @@ mean_other_annual <- other_annual %>%
 cereals <- Cereals[!is.na(Cereals$Percentage_change),] # Remove NA columns
 mean_cereals <- cereals %>%
                 drop_na(Percentage_change) %>%
-                group_by(agricultural_system) %>%
+                group_by(magpie_class) %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Percentage_change, weight)) %>%
                 cbind( crop = "Cerelas" )
@@ -320,7 +320,7 @@ mean_cereals <- cereals %>%
 sugar <- `Sugar Crops`[!is.na(`Sugar Crops`$Percentage_change),] # Remove NA columns
 mean_sugar <- sugar %>%
                 drop_na(Percentage_change) %>%
-                group_by(agricultural_system) %>%
+                group_by(magpie_class) %>%
                 summarise(wheighted.mean = 
                             weighted.mean(Percentage_change, weight)) %>%
                 cbind( crop = "Sugar" )
