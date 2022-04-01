@@ -1,0 +1,153 @@
+---
+title: "23.Analysis_LRR"
+author: "Christina Raw"
+date: "28/3/2022"
+output: html_document
+---
+In this script I am going to analyse biodiversity response to agricultural practices using the log response ratio data. This data comes either directly from log response ratio results of meta-analyses, or from back transforming percentage change data into log response ratio. 
+
+```{r, include = FALSE}
+rm(list=ls())
+gc()
+
+library(readxl)
+library(here)
+library(ggplot2)
+library(lme4)
+library(fitdistrplus)
+library(blme)
+
+d <- read_xlsx(here("Datasets", "06.Excel_Dataset_to_model_LRR.xlsx"))
+
+```
+
+## Distribution
+
+As you can see, the data has a zero-inflated Gaussian distribution. This is die to two reasons:
+  - There were 200 cases where biodiversity did not differ between the control and the treatment agricultural practices
+  - When transforming from wide to long, I added the 349 LRR control values (which were all 0) to the LRR column
+  
+Therefore, there are 200+ 349 = 549 zeroes in the data set. In total, 78.65% of the data is 0
+
+```{r, echo = FALSE}
+
+hist(d$LRR, xlim = c(-4.477337, 2.586478), xlab = "LRR", main = "Histogram of LRR" )
+
+descdist(d$LRR, discrete = FALSE)
+
+qqnorm(d$LRR)
+
+```
+
+```{r, include = FALSE}
+
+100*sum(d$LRR == 0)/nrow(d)
+
+```
+
+It seems like a zero-inflated normal distribution.
+
+# Options I epxlored
+
+## Option 1 = heavy-tailed distribution
+
+## Try the package heavy, for heavy tailed distribution
+
+It does not work because there aren't enough observations for certain groups. However, I don't think the problem is heavy tailed, but zero inflation.
+
+```{r}
+library(heavy)
+
+d <-d[!is.na(d$biodiveristy_metric_category),]
+
+m <- heavyLme(LRR ~ agricultural_system, random = ~ Crop, groups = ~ biodiveristy_metric_category,  data = d)
+summary(m)
+
+```
+
+## Option 2: Bayesian approach
+
+All the information I have found on modelling zero-inflated data with bayesian approach is limited to count data (GLMM)
+
+    ## Blmer package
+
+```{r}
+
+m <- blmer(LRR ~ agricultural_system + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), data = d)
+
+summary(m)
+plot(m)
+
+m <-blmer(formula, data = NULL, REML = TRUE,
+      control = lmerControl(), start = NULL, verbose = 0L,
+      subset, weights, na.action, offset, contrasts = NULL,
+      devFunOnly = FALSE, cov.prior = wishart,
+      fixef.prior = NULL, resid.prior = NULL, ...)
+
+
+names(d)
+```
+
+    ## Pabkage glmTMB for zero-inflated generalized linear mixed modeling
+    
+# Option 3: hurdle models 
+
+## Zero-inflated Gaussian mixed models(ZIGMMs) Xinyan Zhang, Boyi Guo, Nengjun Yi
+
+These authors developed this model to overcome the limitations encountered in other models: zero-inflation, proportion data , missing data, time-dependency and correlations. 
+
+We develop an efficient Expectation-Maximization (EM) algorithm to fit the ZIGMMs
+by taking advantage of the standard procedure for fitting LMMs. We show computational efficiency of ZIGMMs compared with the other two zero-inflated methods, ZIBR and zeroinflated negative binomial mixed models implemented in the R package glmmTMB. Extensive
+simulations demonstrate that our ZIGMMs outperform the various previously used methods in detecting associated effects in longitudinal microbiome data. We also apply our method to a
+shotgun longitudinal microbiome proportion data.
+
+For data with excessive zeros, it can be assumed that transformed values yij may come from either a
+degenerate distribution having the point mass at zero (zero state) or a Gaussian (i.e., normal)
+distribution [17]. Thus, the transformed values yij can be modeled with the zero-inflated
+Gaussian distribution:
+
+## More info on  how to model non-negative zero-inflated continuous data?
+
+https://stats.stackexchange.com/questions/187824/how-to-model-non-negative-zero-inflated-continuous-data
+
+
+# Option 4: linear model?
+
+## Simple linear model to check it lm is a good model fit
+
+By comparing estimated and predicted R2 it looks like a good fot. However, the model diagnostic plots indicate that this is not the best fit. Especially, the Q-Q plot indicates that I need a model for a non-normal distribution. This is bec 
+
+```{r}
+
+m <- lm(LRR ~ Treatment, data = d )
+summary(m)
+plot(m)
+
+m1 <- lmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), data = d )
+
+summary(m1)
+plot(m1)
+
+m2 <- lmer(LRR ~ 1 + (1|Treatment), data = d)
+summary(m2)
+
+unique(d$Treatment)
+
+treatment <- subset(d, Treatment != "Control")
+qqnorm(d$LRR)
+
+```
+
+# Conclusion
+
+The zero inflation an artifact of the data set structure, caused by adding all the control data which is = 0. The zero inflation is not actually biologically caused, it is only a consequence of the data set structure. Therefore, the hurdle model does not make sense biologically (remember, always chose model that makes biological sense). If it were, for example, presence (=1) absence (= 0) data, then a hurdle model would make sense biologically. Im my case, the zeroes are not true zeroes, true data.
+
+Furthermore, the zero inflation should not influence the output. Imagine a random value is added to all the data, then the zero-inflation problem would be solved, but the model output would still remain the same. The zero-inflation is not actually causing any deviations to the results. 
+
+# Next steps
+
+Analysis with the Bayesian approach Andy suggested.
+
+
+
+

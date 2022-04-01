@@ -1,0 +1,111 @@
+---
+title: "24.Analysis_LRR"
+author: "Christina Raw"
+date: "1/4/2022"
+output: html_document
+---  
+
+Very preliminary analysis. Wheights are missing, have not looked at other formula structures or even reflected on the output yet. A haven't checked diagnostic plots either. Basically I have just written this and nothing else.
+
+```{r, warning = FALSE, message = FALSE}
+
+library(blme) # For Bayesian analysis
+library(readxl) # For reading the excel data set
+library(here) # For specifying file paths
+library(knitr) # For making tables
+library(kableExtra)# for pretty rmd tables
+library(dplyr) # For some data wrangling
+library(tidyr) # For some data wrangling
+
+```
+
+```{r, echo = FALSE}
+
+rm(list=ls())
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+treatment_obs <- as.data.frame(table(d$Treatment))
+colnames(treatment_obs) <- c("Treatment", "N_Observations")
+treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+
+kbl(treatment_obs, row.names = FALSE)
+
+```
+
+#
+
+  - Collapse sustainable and organic, as organic is a sistainable agricultural practice. 
+  - Include in the analysis only those treatments that have > 10 observations
+  - Add weights
+
+```{r, warning = FALSE, message = FALSE}
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+
+# Subset agricultural systems with > 10 observations
+
+d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
+
+# Add weights. Reviews will have a wight of 1, and meta-analysis a 
+# weight = n studies included in the meta-analysis
+
+d$Weight <- ""  
+d$Weight[d$Synthesis_type == "Review"] <- 1
+d$Weight[d$Synthesis_type == "Meta-Analysis"] <- d$N_Studies[d$Synthesis_type == "Meta-Analysis"]
+```
+
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+
+x <- select(d, Synthesis_type, N_Studies, Weight) # Check adding weights it worked
+x<- x[!duplicated(x),]
+
+kbl(treatment_obs, row.names = FALSE, caption = "Agricultural systems with more than 10 observations")
+
+```
+
+# Analysis 
+
+## Residuals histogram and qqplot of data **without the control zeroes**
+
+It looks fairly normal to me!
+
+```{r}
+nonzero <- read_excel(here("Datasets", "06.Excel_Dataset_to_model_LRR_WIDE.xlsx"))
+
+m0 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = nonzero)
+
+hist(residuals(m0))
+qqnorm(resid(m0))
+
+```
+
+## Residuals histogram and qqplot of data **with the control zeroes**
+
+Zero-inflated, but that's all. The zeros won't influence in the output. 
+
+```{r}
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+m1 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = d)
+
+hist(residuals(m1))
+qqnorm(resid(m1))
+```
+
+
+```{r}
+# Null model with only random effect to see qq plot of weighted residuals 
+
+m0 <- lmer(LRR ~ 1 + (1|Crop), weights = Weight, data = d)
+plot(m0)
+
+m <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d)
+
+summary(m)
+plot(m)
+
+```
+
