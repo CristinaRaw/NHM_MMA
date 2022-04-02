@@ -223,6 +223,20 @@ for(i in 1:nrow(long_LRR)){
   }
 }
 
+# Clean
+
+long_LRR$Treatment[long_LRR$Treatment == "conservation"] <- "Conservation"
+long_LRR$Treatment[long_LRR$Treatment == "conventional"] <- "Conventional"
+long_LRR$Treatment[long_LRR$Treatment == "traditional"] <- "Traditional"
+long_LRR$Treatment[long_LRR$Treatment == "Conventional_NonWeeded"] <- "Conventional"
+long_LRR$Treatment[long_LRR$Treatment == "Conventional_Weeded"] <- "Conventional"
+long_LRR$Treatment[long_LRR$Treatment == "Fragmented_forest"] <- "Disturbed_forest"
+long_LRR$Treatment[long_LRR$Treatment == "Logged_forest"] <- "Disturbed_forest"
+long_LRR$Treatment[long_LRR$Treatment == "Fragmentded_forest"] <- "Disturbed_forest"
+long_LRR$Treatment[long_LRR$Treatment == "Primary_forest"] <- "Primary_vegetation"
+long_LRR$Treatment[long_LRR$Treatment == "Contiguous_forest"] <- "Primary_vegetation"
+long_LRR$Treatment[long_LRR$Treatment == "Intercrop"] <- "mixed"
+long_LRR$Treatment[long_LRR$Treatment == "Simplified"] <- "Conventional"
 
 # 4. Save data frame
 
