@@ -106,7 +106,6 @@ treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
 d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
 
 ```
-```
 
 ## Bayesian model
 
@@ -115,7 +114,14 @@ d <- d[d$Treatment %in% treatment_obs$Treatment, ]
 m3 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d)
 
 summary(m3)
+```
+I read on internet a way to fix the warnings https://stats.stackexchange.com/questions/242109/model-failed-to-converge-warning-in-lmer
 
+```{r}
+
+m4 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m4)
 
 ```
 
