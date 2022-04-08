@@ -115,6 +115,7 @@ m3 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|C
 
 summary(m3)
 ```
+
 I read on internet a way to fix the warnings https://stats.stackexchange.com/questions/242109/model-failed-to-converge-warning-in-lmer
 
 ```{r}
@@ -122,6 +123,104 @@ I read on internet a way to fix the warnings https://stats.stackexchange.com/que
 m4 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
 summary(m4)
+plot(m4)
 
 ```
+
+### 7/4/22
+
+From the book on bayesian analysis - linear regression (p. 235): "However, even in the non informative case, posteriori simulations are useful for predictive inference and model checking"
+
+From LME4 package: "Finally, posterior predictive simulation (Gelman and Hill 2006) is a generally useful diagnostic
+tool, adapted from Bayesian methods, for exploring model fit. Users pick some summary
+statistic of interest. They then compute the summary statistic for an ensemble of simulations
+(Section 5.2.8), and see where the observed data falls within the simulated distribution; if the observed data is extreme, we might conclude that the model is a poor representation of reality. For example, using the sleep study fit and choosing the interquartile range of the reaction times as the summary statistic:
+> iqrvec <- sapply(simulate(fm1, 1000), IQR)
+> obsval <- IQR(sleepstudy$Reaction)
+> post.pred.p <- mean(obsval >= c(obsval, iqrvec)
+
+
+# Next steps today
+
+## 1. Check model fit without prior
+
+BAD
+
+```{r}
+# Diagnostic plots
+
+plot(m4, type = c("p", "smooth"))
+
+plot(m4, sqrt(abs(resid(.))) ~ fitted(.),
+type = c("p", "smooth"))
+
+library(lattice)
+qqmath(m4, id = 0.05)
+
+# MCMC diagnostic
+# To understand whether there were problems with saplings. In other words, how reliable are our samples and thus our inference?
+
+install.packages("bayesplot")
+library(bayesplot)
+
+# Trace plot of Linear Regression, define variables to plot via pars flag
+mcmc_trace(m4,  pars = c("b_Intercept", "b_std_age", "sigma"), 
+           n_warmup = 500, facet_args = list(ncol = 2, labeller = label_parsed))
+           
+
+# ACF plot for Linear Regression, lags can be easily defined in the function
+
+m4_posteriors <- m4$posterior
+mcmc_acf(lin_reg, pars = c("b_Intercept", "b_std_age", "sigma"), 
+         lags = 15)
+
+```
+
+
+
+
+## 2. Check model fit with prior
+
+But wait, the options for priors for fixed effect make no sense because they are categorical. Maybe prioris for the residuals? BUT this is too much for my knowledge so I will input NO priors 
+
+```{r}
+m5 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"),  fixef.prior = normal)
+
+summary(m5)
+plot(m5)
+plot(m5, type = c("p", "smooth"))
+
+plot(m5, sqrt(abs(resid(.))) ~ fitted(.),
+type = c("p", "smooth"))
+
+library(lattice)
+qqmath(m5, id = 0.05)
+
+
+```
+
+
+
+Actually now I am thinking of doing two separate models. One for crops and one for magpie classes 
+
+
+```{r}
+
+# Crop
+ 
+unique(d$magpie_class) # fixed, levels = 5
+unique(d$biodiveristy_metric_category) # random (> 5 levels), also, because is clustering term, nor fized
+unique(d$Crop)
+
+m4 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m4)
+
+mCrop <- blmer(LRR ~ Treatment + (1|biodiveristy_metric_category) + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+summary(mCrop)
+
+```
+
+
+
 

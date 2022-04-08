@@ -1,0 +1,52 @@
+---
+title: "25.Analysis_LRR"
+author: "Christina Raw"
+date: "8/4/2022"
+output: html_document
+---
+
+In this script I am going to perform a Bayesian analysis of the data.
+
+  - Data set: quantitative observation of biodiversity under different agricultural systems. 
+  - Goal: see how different agricultural systems impact biodiversity.
+
+## Brief introduction of the method
+
+I will perform a linear mixed model in a Bayesian environment implementing the methods of Chung, et al. (2013). 
+
+**Chung *et al.* (2013)** *what I have understood*
+
+When there is a case of small number of groups in Linear Mixed Models, estimates of group-level variance (i.e., between-group variance) can be noisy and often be 0, when, in reality, *there is* between group variance. In this case, accepting the null hypothesis that group-level variance is 0 is a wrong assumption that can lead to wrong conclusions. Chung *et al.* solve this problem by applying a Maximum Penalised Likelihood (MPL) estimator for variance, which adds a penalization of +1 to variance when is estimated as 0. In this case:
+
+  - The exponential of the penalty can be regarded as a Bayesian prior density for variance
+  - The MPL estimates can be regarded as posterior modal estimates
+  - The MPL is as efficient as the MLE
+  - It is possible to apply the MPL without requiring strong prior knowledge
+  - The MPL does not involve simulation so there are no MCMC iterations (I think)
+  
+
+```{r, warning = FALSE, message = FALSE}
+
+library(blme) # For Bayesian analysis
+library(readxl) # For reading the excel data set
+library(here) # For specifying file paths
+library(knitr) # For making tables
+library(kableExtra)# for pretty rmd tables
+library(dplyr) # For some data wrangling
+library(tidyr) # For some data wrangling
+
+```
+
+## Fixed and random factors
+
+  - Fixed factors ( I am interested in their mean)
+    - Agricultural system: I want to know biodiversity mean in each agricultural system
+    - Biodiversity metric: I want to know the mean of each type of biodiversity metric **in each type of agricultural sytem**, so, maybe introduce an interaction? metric:agricultrual_system?
+
+  - Random factors (variance)
+    - Crop: grouping factor
+    - Mapgpie: grouping factor
+    - ID: actually this one is only to account for non independance od the two data points that come from the same control-treatment comparison
+  
+  
+  
