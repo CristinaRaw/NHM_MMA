@@ -1,0 +1,226 @@
+---
+title: "24.Analysis_LRR"
+author: "Christina Raw"
+date: "1/4/2022"
+output: html_document
+---  
+
+Very preliminary analysis. Wheights are missing, have not looked at other formula structures or even reflected on the output yet. A haven't checked diagnostic plots either. Basically I have just written this and nothing else.
+
+```{r, warning = FALSE, message = FALSE}
+
+library(blme) # For Bayesian analysis
+library(readxl) # For reading the excel data set
+library(here) # For specifying file paths
+library(knitr) # For making tables
+library(kableExtra)# for pretty rmd tables
+library(dplyr) # For some data wrangling
+library(tidyr) # For some data wrangling
+
+```
+
+```{r, echo = FALSE}
+
+rm(list=ls())
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+treatment_obs <- as.data.frame(table(d$Treatment))
+colnames(treatment_obs) <- c("Treatment", "N_Observations")
+treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+
+kbl(treatment_obs, row.names = FALSE)
+
+```
+
+#
+
+  - Collapse sustainable and organic, as organic is a sistainable agricultural practice. 
+  - Include in the analysis only those treatments that have > 10 observations
+  - Add weights
+
+```{r, warning = FALSE, message = FALSE}
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+
+# Subset agricultural systems with > 10 observations
+
+d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
+
+```
+
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+
+x <- select(d, Synthesis_type, N_Studies, Weight) # Check adding weights it worked
+x<- x[!duplicated(x),]
+
+kbl(treatment_obs, row.names = FALSE, caption = "Agricultural systems with more than 10 observations")
+
+```
+
+# Analysis 
+
+## Residuals histogram and qqplot of data **without the control zeroes**
+
+It looks fairly normal to me!
+
+```{r}
+
+# Null model with only random effect to see qq plot of weighted residuals 
+
+nonzero <- read_excel(here("Datasets", "06.Excel_Dataset_to_model_LRR_WIDE.xlsx"))
+
+m0 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = nonzero)
+
+hist(residuals(m0))
+qqnorm(resid(m0))
+
+```
+
+## Residuals histogram and qqplot of data **with the control zeroes**
+
+Zero-inflated, but that's all. The zeros won't influence in the output. 
+
+```{r}
+
+# Null model with only random effect to see qq plot of weighted residuals 
+
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+m1 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = d)
+
+hist(residuals(m1))
+qqnorm(resid(m1))
+```
+```{r, warning = FALSE, message = FALSE}
+
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+
+# Subset agricultural systems with > 10 observations
+
+d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
+
+```
+
+## Bayesian model
+
+```{r}
+
+m3 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d)
+
+summary(m3)
+```
+
+I read on internet a way to fix the warnings https://stats.stackexchange.com/questions/242109/model-failed-to-converge-warning-in-lmer
+
+```{r}
+
+m4 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m4)
+plot(m4)
+
+```
+
+### 7/4/22
+
+From the book on bayesian analysis - linear regression (p. 235): "However, even in the non informative case, posteriori simulations are useful for predictive inference and model checking"
+
+From LME4 package: "Finally, posterior predictive simulation (Gelman and Hill 2006) is a generally useful diagnostic
+tool, adapted from Bayesian methods, for exploring model fit. Users pick some summary
+statistic of interest. They then compute the summary statistic for an ensemble of simulations
+(Section 5.2.8), and see where the observed data falls within the simulated distribution; if the observed data is extreme, we might conclude that the model is a poor representation of reality. For example, using the sleep study fit and choosing the interquartile range of the reaction times as the summary statistic:
+> iqrvec <- sapply(simulate(fm1, 1000), IQR)
+> obsval <- IQR(sleepstudy$Reaction)
+> post.pred.p <- mean(obsval >= c(obsval, iqrvec)
+
+
+# Next steps today
+
+## 1. Check model fit without prior
+
+BAD
+
+```{r}
+# Diagnostic plots
+
+plot(m4, type = c("p", "smooth"))
+
+plot(m4, sqrt(abs(resid(.))) ~ fitted(.),
+type = c("p", "smooth"))
+
+library(lattice)
+qqmath(m4, id = 0.05)
+
+# MCMC diagnostic
+# To understand whether there were problems with saplings. In other words, how reliable are our samples and thus our inference?
+
+install.packages("bayesplot")
+library(bayesplot)
+
+# Trace plot of Linear Regression, define variables to plot via pars flag
+mcmc_trace(m4,  pars = c("b_Intercept", "b_std_age", "sigma"), 
+           n_warmup = 500, facet_args = list(ncol = 2, labeller = label_parsed))
+           
+
+# ACF plot for Linear Regression, lags can be easily defined in the function
+
+m4_posteriors <- m4$posterior
+mcmc_acf(lin_reg, pars = c("b_Intercept", "b_std_age", "sigma"), 
+         lags = 15)
+
+```
+
+
+
+
+## 2. Check model fit with prior
+
+But wait, the options for priors for fixed effect make no sense because they are categorical. Maybe prioris for the residuals? BUT this is too much for my knowledge so I will input NO priors 
+
+```{r}
+m5 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"),  fixef.prior = normal)
+
+summary(m5)
+plot(m5)
+plot(m5, type = c("p", "smooth"))
+
+plot(m5, sqrt(abs(resid(.))) ~ fitted(.),
+type = c("p", "smooth"))
+
+library(lattice)
+qqmath(m5, id = 0.05)
+
+
+```
+
+
+
+Actually now I am thinking of doing two separate models. One for crops and one for magpie classes 
+
+
+```{r}
+
+# Crop
+ 
+unique(d$magpie_class) # fixed, levels = 5
+unique(d$biodiveristy_metric_category) # random (> 5 levels), also, because is clustering term, nor fized
+unique(d$Crop)
+
+m4 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m4)
+
+mCrop <- blmer(LRR ~ Treatment + (1|biodiveristy_metric_category) + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+summary(mCrop)
+
+```
+
+
+
+

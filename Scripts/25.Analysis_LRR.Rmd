@@ -16,14 +16,13 @@ I will perform a linear mixed model in a Bayesian environment implementing the m
 
 **Chung *et al.* (2013)** *what I have understood*
 
-When there is a case of small number of groups in Linear Mixed Models, estimates of group-level variance (i.e., between-group variance) can be noisy and often be 0, when, in reality, *there is* between group variance. In this case, accepting the null hypothesis that group-level variance is 0 is a wrong assumption that can lead to wrong conclusions. Chung *et al.* solve this problem by applying a Maximum Penalised Likelihood (MPL) estimator for variance, which adds a penalization of +1 to variance when is estimated as 0. In this case:
+When there is a case of small number of groups in Linear Mixed Models, estimates of group-level variance (i.e., between-group variance) can be noisy and often be 0, when, in reality, *there is* between group variance. In this case, accepting the null hypothesis that group-level variance is 0 is a wrong assumption that can lead to wrong conclusions. Chung *et al.* solve this problem by applying a Maximum Penalized Likelihood (MPL) estimator for variance, which adds a penalization of +1 to variance when is estimated as 0. In this case:
 
   - The exponential of the penalty can be regarded as a Bayesian prior density for variance
   - The MPL estimates can be regarded as posterior modal estimates
   - The MPL is as efficient as the MLE
   - It is possible to apply the MPL without requiring strong prior knowledge
   - The MPL does not involve simulation so there are no MCMC iterations (I think)
-  
 
 ```{r, warning = FALSE, message = FALSE}
 
@@ -37,16 +36,206 @@ library(tidyr) # For some data wrangling
 
 ```
 
-## Fixed and random factors
+## 1. Take a look at the data
 
-  - Fixed factors ( I am interested in their mean)
-    - Agricultural system: I want to know biodiversity mean in each agricultural system
-    - Biodiversity metric: I want to know the mean of each type of biodiversity metric **in each type of agricultural sytem**, so, maybe introduce an interaction? metric:agricultrual_system?
+```{r, echo = FALSE}
 
-  - Random factors (variance)
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+treatment_obs <- as.data.frame(table(d$Treatment))
+colnames(treatment_obs) <- c("Treatment", "N_Observations")
+treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+
+kbl(treatment_obs, row.names = FALSE)
+
+```
+
+#
+
+  - Collapse sustainable and organic, as organic is a sustainable agricultural practice. 
+  - Include in the analysis only those treatments that have > 10 observations
+  - Add weights
+
+```{r, warning = FALSE, message = FALSE}
+
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+
+treatment_obs <- as.data.frame(table(d$Treatment))
+colnames(treatment_obs) <- c("Treatment", "N_Observations")
+treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+
+treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+
+# Subset agricultural systems with >= 10 observations
+
+d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
+
+```
+
+### Residuals histogram and qqplot of data **without the control zeroes**
+
+It looks fairly normal to me!
+
+```{r}
+
+# Null model with only random effect to see qq plot of weighted residuals 
+
+nonzero <- read_excel(here("Datasets", "06.Excel_Dataset_to_model_LRR_WIDE.xlsx"))
+
+m0 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = nonzero)
+
+hist(residuals(m0))
+qqnorm(resid(m0))
+
+```
+
+### Residuals histogram and qqplot of data **with the control zeroes**
+
+Zero-inflated, but that's all. The zeros won't influence in the output. 
+
+```{r}
+
+# Null model with only random effect to see qq plot of weighted residuals 
+
+m1 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = d)
+
+hist(residuals(m1))
+qqnorm(resid(m1))
+```
+
+## 2. Analysis
+
+### Relevel d so conventional is reference
+
+```{r}
+d$Treatment <- as.factor(d$Treatment)
+d$Treatment <- relevel(d$Treatment, ref = "Conventional")
+```
+
+### Model 1: how does agriculture vary across agricultural systems?
+
+```{r}
+
+m1 <- blmer(LRR ~ Treatment + biodiveristy_metric_category + (1|ID) + (1|Crop), data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m1)
+```
+
+Crop does not explain much variance as random effect. There is significant biodiversity change between conventional and: conservation, primary vegetation and sustainable (organic + sustainable).
+
+However, this does not tell me how each metric varies under the different agricultural systems. To see that, I would need to include an interaction (*I think*).
+
+### Model 2: how does agriculture vary across agricultural systems with a closer look to biodiversity metric.
+
+  - Fixed effects (I am interested in their mean)
+    - Agricultural system: I want to know biodiversity mean in each agricultural system ( = Treatment)
+    - Biodiversity metric: I want to know the mean of each type of biodiversity metric **in each type of agricultural system**, so, maybe introduce an interaction? metric:agricultural system?
+
+  - Random effects (variance)
     - Crop: grouping factor
-    - Mapgpie: grouping factor
-    - ID: actually this one is only to account for non independance od the two data points that come from the same control-treatment comparison
+    - ID: actually this one is only to account for non independence of the two data points that come from the same control-treatment comparison
+
+```{r}
+
+m2 <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(m2)
+
+```
+
+Error occurs because not all combinations of the interaction have data, so the model drops them.
+
+Residual variance increases when including the interaction, which I think means that this model is worse explaining the variance.
+
+Under mixed agriculture, both diversity and development differ significantly from intercept.
+
+**HOWEVER**
+
+I am not really interested in how the metrics vary per system. My *goal* with this analysis is too see how biodiversity varies under agricultural systems **whithin crop and magpie class**. Therefore, I believe subsetting first per crop and then per magpie class will be more inormative.
+
+### Analysis per crop
+
+  - 1) Subset per crop
   
+```{r, include = FALSE}
+crop <- unique(d$Crop)
+
+crop_list <- list() 
+
+for (i in crop){
+data <- dplyr :: filter( d , Crop == i)
+crop_list[[i]] <- data
+}
+
+list2env(lapply(crop_list, as.data.frame), .GlobalEnv)
+
+```
+
+  - 2) Do model for crops with more than 50 observations (rule of thumb for LMM)
   
+```{r}
+# Cassava: only two treatments (mixed and monoculture) -> t.test
+
+t.test(LRR~Treatment, data = Cassava )
+
+# Cotton
+
+cotton <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment  + (1|ID), weights = Weight, data = Cotton, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(cotton)
+
+# Maize
+
+maize <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment  + (1|ID), weights = Weight, data = Cotton, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(maize)
+```
+
+Already I can see that doing it per crop is not the best approach given the data set. Next, I will try per magpie class.
+
+### Analysis per magpie class
+
+  - 1) Subset per magpie class
   
+```{r, include = FALSE}
+magpie <- unique(d$magpie_class)
+
+magpie_list <- list() 
+
+for (i in magpie){
+data <- dplyr :: filter( d , magpie_class == i)
+magpie_list[[i]] <- data
+}
+
+list2env(lapply(magpie_list, as.data.frame), .GlobalEnv)
+
+```
+
+  - 2) Analysis per magpie class
+  
+```{r}
+cereals <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment  + (1|ID), weights = Weight, data = Cereals, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(cereals)
+  
+```
+
+
+```{r}
+oil <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment  + (1|ID), weights = Weight, data = `Oil crops`, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(oil)
+
+```
+I could continue but I guess I am going to keep getting these really small estimates. 
+
+I think what is happening is that when i subset per crop and magpie class, the zeroes included in the control are playing a much stronger role and actually *do* influence the model output.
+
+Comments?
+
+
+
+
+
