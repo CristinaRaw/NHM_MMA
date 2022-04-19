@@ -103,7 +103,7 @@ perc <- rbind(perc, neg_perc) # rbind both data frames
 
 length(which(perc$Percentage_change == 0))
 
-# Now I only have positive percentage change data, so I am going to calcualte the
+# Now I only have positive percentage change data, so I am going to calculate the
 # LRR again with this data
 
 # 2. Transform data from percentage change into LRR
