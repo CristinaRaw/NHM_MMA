@@ -5,6 +5,25 @@ date: "19/4/2022"
 output: html_document
 ---
 
+Table of contents:
+
+  - 1. Take a look at the data
+    - Residuals histogram and qqplot of data **without the control zeroes**
+    - Residuals and qqplot of data **with the control zeroes**
+  - 2. Analysis
+    - 2.1 Re level data so conventional is reference
+    - 2.2 Crop as random effect
+    - 2.3 Crop as fixed effect
+    - 2.4 Biodiversity metric in each system
+    - 2.5 Model selection
+    - 2.6 Model goodness-of-fit
+  - 3. Analysis per biodiversity metric
+    - 3.1 Biodiversity metric data barplot
+    - 3.2 Biodiversity metric data **per crop**
+    - 3.3 Biomass and diversity analysis **per crop**: Maize and Oil palm
+    - 3.4 Biodiversity metric data **per magpie class**
+    - 3.5 biomass, diversity and enzymatic activity analysis **per magpie class**: Cereals and Oil crops
+
 ```{r, warning = FALSE, message = FALSE}
 
 library(blme) # For Bayesian analysis
@@ -103,33 +122,40 @@ qqnorm(resid(m1))
 
 ## 2. Analysis
 
-### 2.1 Crop as random effect
+### 2.1 Relevel d so conventional is reference
 
-```{r, error=FALSE}
+```{r}
+d$Treatment <- as.factor(d$Treatment)
+d$Treatment <- relevel(d$Treatment, ref = "Conventional")
+```
+
+### 2.2 Crop as random effect
+
+```{r, error=FALSE, message = FALSE}
 m0 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
 summary(m0)
 ```
 
-### 2.2 Crop as fixed effect
+### 2.3 Crop as fixed effect
 
-```{r, error=FALSE}
+```{r, error=FALSE, message = FALSE}
 m1 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + Crop + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
 summary(m1)
 ```
 
-### 2.3 Biodiversity metric in each system
+### 2.4 Biodiversity metric in each system
 
 I want to know the mean of each type of biodiversity metric in each type of agricultural system so, maybe I am going to introduce the interaction -\> metric:agricultural system
 
-```{r}
+```{r, message = FALSE}
 m2 <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
 summary(m2)
 ```
 
-### 2.4 Model selection
+### 2.5 Model selection
 
 ```{r}
 
@@ -138,7 +164,7 @@ anova(m0, m1, m2)
 ```
 According to the anova output, the model that includes the interaction (m3) is a significantly better fit to the data. **However**, I am not sure I can use this anova because blmer uses a penalised maximum likelihood estimator of variance, whereas for doing the anova, a maximum likelihood estimator is needed, loosing the whole point of blmer.
 
-```{r}
+```{r, warning = FALSE}
 r.squaredGLMM(m0)
 r.squaredGLMM(m1)
 r.squaredGLMM(m2)
@@ -149,7 +175,7 @@ model.sel(m0,m1,m2)
 
 Model 2 seems like the best fit: highest r2, lowest logLik, lowest AIC.
 
-### 2.5 Model goodness-of-fit
+### 2.6 Model goodness-of-fit
 
 ```{r}
 
@@ -168,13 +194,12 @@ ggplot(data.frame( lev = hatvalues(m2), pearson = residuals( m2, type = "pearson
     geom_point() +
     theme_bw()
 
-https://www.ssc.wisc.edu/sscc/pubs/MM/MM_DiagInfer.html#diagnostics
-
 ```
 
 
 ```{r}
 ## scale-location plot, with red smoothed line
+
 scale_loc_plot <- function(m, line.col = "red", line.lty = 1,
                            line.lwd = 2) {
   plot(m0, sqrt(abs(resid(.))) ~ fitted(.),
@@ -215,7 +240,9 @@ ggplot(d, aes(x = biodiveristy_metric_category, fill = agricultural_system)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-### 3.2 Biodiversity metric data pero crop
+### 3.2 Biodiversity metric data per **crop**
+
+An analysis could be performed for: biomass (maize) and diversity (oil palm)
 
 ```{r, echo = FALSE}
 
@@ -255,7 +282,46 @@ kable(table(survival$Crop, survival$agricultural_system), caption = "Metric: sur
 
 ```
 
-### 3.2 Biodiversity metric data pero magpie class
+### 3.3 Biomass and diversity analysis per **crop**: Maize and Oil Palm
+
+An analysis could be performed for: biomass (maize) and diversity (oil palm)
+
+```{r}
+# Biomass: Maize
+
+maize <- subset(d, Crop == "Maize" & biodiveristy_metric_category == "biomass")
+
+unique(maize$Paper_ID)
+```
+
+There are three papers that provide biomass data fro maize crop
+
+```{r}
+model_maize <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = maize, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(model_maize)
+```
+
+```{r}
+
+# Diversity: Oil Palm
+
+oil <- subset(d, Crop == "Oil_palm" & biodiveristy_metric_category == "diversity")
+
+unique(oil$Paper_ID)
+```
+There are 6 papers that provide diversity data for oil palm crop
+
+```{r}
+model_oil <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = oil, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(model_oil) 
+
+```
+
+### 3.4 Biodiversity metric data per **magpie class**
+
+An analysis could be performed for biomass (cereals and oil crops), diversity (oil crops) and enzymatic activity (oil crops)
 
 ```{r, echo = FALSE}
 
@@ -294,3 +360,80 @@ kable(table(survival$magpie_class, survival$agricultural_system), caption = "Met
   kable_styling( full_width = F, position = "right")
 
 ```
+
+### 3.5 Biomass, diversity and enzymatic activity analysis per **magpie class**: cereals and oil crops
+
+An analysis could be performed for biomass (cereals and oil crops), diversity (oil crops) and enzymatic activity (oil crops)
+
+```{r}
+# Biomass: Cereals 
+
+cereals <- subset(d, magpie_class == "Cereals" & biodiveristy_metric_category == "biomass")
+
+unique(cereals$Paper_ID)
+
+```
+There are four papers that provide data for biomass for the cereals magpie class
+
+```{r}
+
+biomass_cereals <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = cereals, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(biomass_cereals)
+
+```
+
+```{r}
+# Biomass: Oil crops
+
+oil_crops <- subset(d, magpie_class == "Oil crops" & biodiveristy_metric_category == "biomass")
+
+unique(oil_crops$Paper_ID)
+```
+
+There are two papers that provide data for biomass for the oil crops magpie class
+
+```{r}
+
+biomass_oil_crops <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = oil_crops, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(biomass_oil_crops)
+
+```
+
+```{r}
+# Diversity: Oil crops
+
+oil_crops <- subset(d, magpie_class == "Oil crops" & biodiveristy_metric_category == "diversity")
+
+unique(oil_crops$Paper_ID)
+```
+
+There are nine papers that provide data for diversity for the oil crops magpie class
+
+```{r}
+
+diversity_oil_crops <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = oil_crops, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(diversity_oil_crops)
+
+```
+```{r}
+# Enzymatic activity: Oil crops
+
+oil_crops <- subset(d, magpie_class == "Oil crops" & biodiveristy_metric_category == "Enzymatic_activity")
+
+unique(oil_crops$Paper_ID)
+
+```
+
+There are two papers that provide enzymatic activity data for the oil crops magpie class
+
+```{r}
+
+enzymatic_oil_crops <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = oil_crops, control = lmerControl(optimizer ="Nelder_Mead"))
+
+summary(enzymatic_oil_crops)
+
+```
+
