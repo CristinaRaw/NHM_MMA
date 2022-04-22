@@ -61,7 +61,7 @@ perc$LRR[c(45, 164, 165, 166, 304, 305)] <- -1  # Change -Inf values for -1
 # values, which means that a log either can't be applied or will return - Inf
 
 # Solution: turn around negative percentages into positive percentages. I have to
-# switch control and treatment and then turn (e.g.) -30 into +70
+# switch control and treatment and then turn (e.g.) -30 into +30
 
 rm(list=ls())
 
@@ -88,7 +88,7 @@ perc <-subset(perc, perc$Percentage_change >= 0)  # Remove negative percentages
 # Now I will turn around negative percentages into positive percentages. I have 
 # to switch control and treatment and then turn (e.g.) -30 into +70
 
-neg_perc$Percentage_change <- 100 + neg_perc$Percentage_change # Turn around % data
+neg_perc$Percentage_change <- 100 + (-(neg_perc$Percentage_change)) # Turn around % data
 
 neg_perc <- rename(neg_perc,                      # Switch control and treatment
                    agricultural_system = Control, 
@@ -99,9 +99,19 @@ perc <- relocate(perc, agricultural_system,   # Relocate columns so they match
 neg_perc <- relocate(neg_perc, agricultural_system, 
                      .after = Control)
 
+
+# In the perc data frame (= biodiversity percentage increase with treatment) I have to add 
+# a 100 because in the when transforming LRR into percentage, a percentage value 
+# lower than 100 will be a decrease in biodiversity (e.g., 23% increase should be 
+# 123% increase so when transforming it into LRR it is an actual increase)
+
+perc$Percentage_change <- perc$Percentage_change + 100
+
+# Now I have to rbind both data frames
+
 perc <- rbind(perc, neg_perc) # rbind both data frames 
 
-length(which(perc$Percentage_change == 0))
+length(which(perc$Percentage_change < 0))
 
 # Now I only have positive percentage change data, so I am going to calculate the
 # LRR again with this data
@@ -124,15 +134,11 @@ length(which(perc$Percentage_change < 0)) # Check data is correct (no negative %
 perc <- mutate(perc, LRR = log(Percentage_change/100))
 
 perc$LRR  # Check it worked
-which(perc$LRR == "-Inf")   # Some rows are -Inf, which corresponds to a LRR = 0
- 
-perc$LRR[perc$LRR == "-Inf"] <- 0  # Change -Inf values for -0
-which(perc$LRR == "-Inf") # Check it worked
 
     # c. Rbind two data frames
 
 LRR <- rbind (LRR, perc)
-length(which(LRR$LRR == 0))
+
 
 # 3. Fix some rows values 
 
@@ -184,7 +190,7 @@ d$Weight <- ""
 d$Weight[d$Synthesis_type == "Review"] <- 1
 d$Weight[d$Synthesis_type == "Meta-Analysis"] <- d$N_Studies[d$Synthesis_type == "Meta-Analysis"]
     
-x <- select(d, Synthesis_type, N_Studies, Weight) # Check adding weights it worked
+x <- select(d, Synthesis_type, N_Studies, Weight) # Check adding weights worked
 x<- x[!duplicated(x),]
 
 # Save wide format data set
@@ -194,7 +200,7 @@ write_xlsx(d, "Datasets/06.Excel_Dataset_to_model_LRR_WIDE.xlsx")
 
 # 5. Change data set from wide to long
 
-LRR <- d
+LRR <- d # I do this because I already had the code written with LRR as data
 
 LRR$ID <- 1:nrow(LRR) # Add column for comparison number
 colnames(LRR)[37] <- "Treatment_LRR"
