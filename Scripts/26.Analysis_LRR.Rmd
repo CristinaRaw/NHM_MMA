@@ -5,24 +5,29 @@ date: "19/4/2022"
 output: html_document
 ---
 
+In this script I am going to perform a Bayesian analysis of the data to see how differet agricultural systems impact biodiversity. The data set consists of quantitative observation of biodiversity under different agricultural systems. 
+
 Table of contents:
 
-  - 1. Take a look at the data
-    - Residuals histogram and qqplot of data **without the control zeroes**
-    - Residuals and qqplot of data **with the control zeroes**
-  - 2. Analysis
-    - 2.1 Re level data so conventional is reference
-    - 2.2 Crop as random effect
-    - 2.3 Crop as fixed effect
-    - 2.4 Biodiversity metric in each system
-    - 2.5 Model selection
-    - 2.6 Model goodness-of-fit
-  - 3. Analysis per biodiversity metric
-    - 3.1 Biodiversity metric data barplot
-    - 3.2 Biodiversity metric data **per crop**
-    - 3.3 Biomass and diversity analysis **per crop**: Maize and Oil palm
-    - 3.4 Biodiversity metric data **per magpie class**
-    - 3.5 biomass, diversity and enzymatic activity analysis **per magpie class**: Cereals and Oil crops
+1. Take a look at the data
+  - 1.1 Residuals histogram and qqplot of data **without the control zeroes**
+  - 1.2 Residuals and qqplot of data **with the control zeroes**
+2. Analysis
+  - 2.1 Brief introduction of the method
+  - 2.2 Re level data so conventional is reference
+  - 2.3 Fixed effects
+  - 2.4 Interaction Treatment:Biodiversity_metric_category
+  - 2.5 Random effects
+  - 2.6 Check R^2^
+  - 2.7 Model
+  - 2.8 Model goodness-of-fit
+  - 2.9 Model with Crop as fixed effect
+3. Analysis per biodiversity metric
+  - 3.1 Biodiversity metric data barplot
+  - 3.2 Biodiversity metric data **per crop**
+  - 3.3 Biomass and diversity analysis **per crop**: Maize and Oil palm
+  - 3.4 Biodiversity metric data **per magpie class**
+  - 3.5 biomass, diversity and enzymatic activity analysis **per magpie class**: Cereals and Oil crops
 
 ```{r, warning = FALSE, message = FALSE}
 
@@ -38,7 +43,7 @@ library(MuMIn) # For model selection
 
 ```
 
-After my meeting with Andy on 14/4/22, we decided to input crop / magpie class as fixed effect. Also, I will see what biodiversity metric looks like and subset by categories, then rerun model -\> see estimates of biodiversity metric categories in space and see how differently they vary under agricultural systems.
+After my meeting with Andy on 14/4/22, we decided to input crop / magpie class as fixed effect. Also, I will see what biodiversity metric looks like and subset by categories, then rerun model and see estimates of biodiversity metric categories in space and see how differently they vary under agricultural systems.
 
 ## 1. Take a look at the data
 
@@ -65,7 +70,7 @@ kbl(treatment_obs, row.names = FALSE)
 
 ```
 
-# 
+
 
 -   Collapse sustainable and organic, as organic is a sustainable agricultural practice.
 -   Include in the analysis only those treatments that have \> 10 observations
@@ -89,7 +94,7 @@ d <- d[d$Treatment %in% treatment_obs$Treatment, ]
 
 ```
 
-### Residuals histogram and qqplot of data **without the control zeroes**
+### 1.1 Residuals histogram and qqplot of data **without the control zeroes**
 
 It looks fairly normal to me!
 
@@ -106,7 +111,7 @@ qqnorm(resid(m0))
 
 ```
 
-### Residuals histogram and qqplot of data **with the control zeroes**
+### 1.2 Residuals histogram and qqplot of data **with the control zeroes**
 
 Zero-inflated, but that's all. The zeros won't influence in the output.
 
@@ -122,77 +127,152 @@ qqnorm(resid(m1))
 
 ## 2. Analysis
 
-### 2.1 Relevel d so conventional is reference
+### 2.1 Brief introduction of the method
+
+I will perform a linear mixed model in a Bayesian environment implementing the methods of Chung, et al. (2013). 
+
+**Chung *et al.* (2013)** *what I have understood*
+
+When there is a case of small number of groups in Linear Mixed Models, estimates of group-level variance (i.e., between-group variance) can be noisy and often be 0, when, in reality, *there is* between group variance. In this case, accepting the null hypothesis that group-level variance is 0 is a wrong assumption that can lead to wrong conclusions. Chung *et al.* solve this problem by applying a Maximum Penalized Likelihood (MPL) estimator for variance, which adds a penalization of +1 to variance when is estimated as 0. In this case:
+
+  - The exponential of the penalty can be regarded as a Bayesian prior density for variance
+  - The MPL estimates can be regarded as posterior modal estimates
+  - The MPL is as efficient as the MLE
+  - It is possible to apply the MPL without requiring strong prior knowledge
+  - The MPL does not involve simulation so there are no MCMC iterations (I think)
+
+### 2.2 Relevel data set so conventional is the reference category
 
 ```{r}
 d$Treatment <- as.factor(d$Treatment)
 d$Treatment <- relevel(d$Treatment, ref = "Conventional")
 ```
 
-### 2.2 Crop as random effect
+### 2.3 Fixed effects
 
-```{r, error=FALSE, message = FALSE}
-m0 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+I want to include crop and treatment as fixed effect. I will construct a maximal model with them and do a round of model selection with the MuMim package.
 
-summary(m0)
-```
+```{r, error = FALSE, warning = FALSE, message = FALSE}
 
-### 2.3 Crop as fixed effect
+# Model
 
-```{r, error=FALSE, message = FALSE}
-m1 <- blmer(LRR ~ Treatment + magpie_class + biodiveristy_metric_category + Crop + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+options(na.action = "na.fail")
 
-summary(m1)
-```
+m0 <- blmer(LRR ~ Treatment + Crop +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
-### 2.4 Biodiversity metric in each system
+# Model selection
 
-I want to know the mean of each type of biodiversity metric in each type of agricultural system so, maybe I am going to introduce the interaction -\> metric:agricultural system
-
-```{r, message = FALSE}
-m2 <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment + (1|Crop) + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
-
-summary(m2)
-```
-
-### 2.5 Model selection
-
-```{r}
-
-anova(m0, m1, m2)
+dredge(m0, beta = "none", evaluate = TRUE)
 
 ```
-According to the anova output, the model that includes the interaction (m3) is a significantly better fit to the data. **However**, I am not sure I can use this anova because blmer uses a penalised maximum likelihood estimator of variance, whereas for doing the anova, a maximum likelihood estimator is needed, loosing the whole point of blmer.
 
-```{r, warning = FALSE}
+According to the model selection table, including Crop as fixed effect is a worse model fit (lower AIC). Therefore, I will only inlcude Treatment as fixed effect.
+
+
+### 2.4 Interaction treatment and biodiversity metric category
+
+I want to know the mean of each type of biodiversity metric in each type of agricultural system so, I am going to introduce the interaction biodiversity_metric_category:Treatment, and see whether that is a better model fit.
+
+```{r, message = FALSE, warning = FALSE, message = FALSE}
+
+# Model selection
+
+m0 <- blmer(LRR ~ Treatment +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+m1 <- blmer(LRR ~ Treatment + Crop +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+
+m2 <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+m3 <- blmer(LRR ~  Treatment + Crop + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+# Model selection. I am doing it this way instead of with the dredge function because with the dredge function I have to apply na.fail, and when I do so, I cannot run the model with the interaction. 
+
+model.sel(m0, m1, m2, m3)
+
 r.squaredGLMM(m0)
 r.squaredGLMM(m1)
 r.squaredGLMM(m2)
-
-model.sel(m0,m1,m2)
+r.squaredGLMM(m3)
 
 ```
 
-Model 2 seems like the best fit: highest r2, lowest logLik, lowest AIC.
+Including the interaction is a worse model fit, so I will not include it in the model.
 
-### 2.6 Model goodness-of-fit
+### 2.5 Random effects
+
+Since Crop is a clustering factor of the data, I want to see whether including crop as random effect is a better fit for the model.
+
+```{r, warning = FALSE, message = FALSE}
+
+# Model
+
+m2 <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+m3 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+# Model selection
+
+anova(m2, m3)
+
+```
+
+Including crop as random effect yields basically the same model fit.
+
+### 2.6 Check R^2^
+
+I also want to check the R2.  
+
+```{r, warning = FALSE, message = FALSE}
+r.squaredGLMM(m0)
+r.squaredGLMM(m1)
+r.squaredGLMM(m2)
+r.squaredGLMM(m3)
+```
+Again, the model with the interaction is a better fit and Crop as random effect does no make much difference. 
+
+### 2.7 Model 
 
 ```{r}
 
+m2 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+summary(m2)
+
+```
+
+Compared to conventional agriculture, biodiversity was significantly higher under conservation agriculture ($\overline{U}_{LRR}$ = 0.49, CI: 0.40 to 0.57, t = 12.236). However, it was lower in disturbed forest ($\overline{U}_{LRR}$ = -0.86,  CI: 1.43 to -0.28, t = -2.775), primary vegetation ($\overline{U}_{LRR}$ = -0.7, CI: -1.01 to -0.37, t = -4.002) and sustainable agriculture ($\overline{U}_{LRR}$ = -2.290548, CI:-4.233562 to -0.3475343, t = -2.260)
+
+These results are against what I would expect. 
+
+### 2.8  Model goodness-of-fit
+
+Now, I will assess the model's goodness. The model is model 2, wich includes the interaction biodiversity_metric_category:Treatment and Crop as random effect.
+
+```{r}
 # Residuals vs Fitted
 
 plot(m2)
+```
 
+Non-linear relationship and Heteroscedasticity.
+
+```{r}
 # Normality of residuals
 
 qqnorm(residuals(m2))
+```
 
+Actually not too bad, reflects zero inflation.
+
+```{r}
 # Residuals vs Leverage
 
 ggplot(data.frame( lev = hatvalues(m2), pearson = residuals( m2, type = "pearson")),
       aes(x = lev, y = pearson)) +
     geom_point() +
     theme_bw()
+
+
 
 ```
 
@@ -208,9 +288,34 @@ scale_loc_plot <- function(m, line.col = "red", line.lty = 1,
                              list(alpha=1, col = line.col,
                                   lty = line.lty, lwd = line.lwd)))
 }
+
 scale_loc_plot(m0)
 ```
 
+### 2.9 Model with Crop as fixed effect
+
+I will also show the results of the model with Crop as fixed effect, since it can also be of interest.
+
+```{r}
+
+m3 <- blmer(LRR ~ Treatment + Crop + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+summary(m3)
+
+```
+
+### Taxon level
+
+```{r}
+
+m3 <- blmer(LRR ~ Treatment + Kingdom:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+
+summary(m3)
+
+sum(is.na(d$Phylum))
+sum(is.na(d$Kingdom))
+
+```
 
 
 ## 3. Analysis per biodiversity metric
