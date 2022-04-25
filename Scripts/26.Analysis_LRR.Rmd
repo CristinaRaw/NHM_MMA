@@ -16,12 +16,11 @@ Table of contents:
   - 2.1 Brief introduction of the method
   - 2.2 Re level data so conventional is reference
   - 2.3 Fixed effects
-  - 2.4 Interaction Treatment:Biodiversity_metric_category
-  - 2.5 Random effects
-  - 2.6 Check R^2^
-  - 2.7 Model
-  - 2.8 Model goodness-of-fit
-  - 2.9 Model with Crop as fixed effect
+  - 2.4 Random effects
+  - 2.5 Model
+  - 2.6 Model goodness-of-fit
+  - 2.7 Model with Crop as fixed effect
+  - 2.8 Taxon level
 3. Analysis per biodiversity metric
   - 3.1 Biodiversity metric data barplot
   - 3.2 Biodiversity metric data **per crop**
@@ -73,6 +72,7 @@ kbl(treatment_obs, row.names = FALSE)
 
 
 -   Collapse sustainable and organic, as organic is a sustainable agricultural practice.
+-   Include monoculture in conventional
 -   Include in the analysis only those treatments that have \> 10 observations
 -   Add weights
 
@@ -82,13 +82,19 @@ kbl(treatment_obs, row.names = FALSE)
 
 d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
 
+# Include monoculture in conventional 
+
+d$Treatment[d$Treatment == "Monoculture"] <- "Conventional"
+
+# Subset agricultural systems with >= 10 observations
+
 treatment_obs <- as.data.frame(table(d$Treatment))
 colnames(treatment_obs) <- c("Treatment", "N_Observations")
 treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
 
 treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
 
-# Subset agricultural systems with >= 10 observations
+
 
 d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
 
@@ -150,42 +156,21 @@ d$Treatment <- relevel(d$Treatment, ref = "Conventional")
 
 ### 2.3 Fixed effects
 
-I want to include crop and treatment as fixed effect. I will construct a maximal model with them and do a round of model selection with the MuMim package.
-
-```{r, error = FALSE, warning = FALSE, message = FALSE}
-
-# Model
-
-options(na.action = "na.fail")
-
-m0 <- blmer(LRR ~ Treatment + Crop +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
-
-# Model selection
-
-dredge(m0, beta = "none", evaluate = TRUE)
-
-```
-
-According to the model selection table, including Crop as fixed effect is a worse model fit (lower AIC). Therefore, I will only inlcude Treatment as fixed effect.
-
-
-### 2.4 Interaction treatment and biodiversity metric category
-
-I want to know the mean of each type of biodiversity metric in each type of agricultural system so, I am going to introduce the interaction biodiversity_metric_category:Treatment, and see whether that is a better model fit.
+I want to include crop and treatment as fixed effect. I also want to know the mean of each type of biodiversity metric in each type of agricultural system so. I will create models where I include and exclude the fixed effects and the interaction treatment:biodiversity_metric_category and do model selection using the package MuMin. I am doing it this way instead of with the dredge function because with the dredge function I have to apply na.fail, and when I do so, I cannot run the model with the interaction. 
 
 ```{r, message = FALSE, warning = FALSE, message = FALSE}
 
-# Model selection
+# Model selection. I am doing it this way instead of with the dredge function because with the dredge function I have to apply na.fail, and when I do so, I cannot run the model with the interaction. 
 
-m0 <- blmer(LRR ~ Treatment +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+m0 <- blmer(LRR ~ Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
-m1 <- blmer(LRR ~ Treatment + Crop +(1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
+m1 <- blmer(LRR ~ Treatment + Crop + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"))
 
 m2 <- blmer(LRR ~  Treatment + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
 m3 <- blmer(LRR ~  Treatment + Crop + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
-# Model selection. I am doing it this way instead of with the dredge function because with the dredge function I have to apply na.fail, and when I do so, I cannot run the model with the interaction. 
+# Model selection. 
 
 model.sel(m0, m1, m2, m3)
 
@@ -195,10 +180,9 @@ r.squaredGLMM(m2)
 r.squaredGLMM(m3)
 
 ```
+According to the model selection table, m0 is the best fit. Also looking at the R2, m0 has one of te highest marginal and conditional R2 (although only by a small margin of difference). Therefore, I will only include treatment as fixed effect.
 
-Including the interaction is a worse model fit, so I will not include it in the model.
-
-### 2.5 Random effects
+### 2.4 Random effects
 
 Since Crop is a clustering factor of the data, I want to see whether including crop as random effect is a better fit for the model.
 
@@ -206,63 +190,49 @@ Since Crop is a clustering factor of the data, I want to see whether including c
 
 # Model
 
-m2 <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+m0 <- blmer(LRR ~  Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
-m3 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+m4 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
 # Model selection
 
-anova(m2, m3)
+anova(m0, m4 )
 
 ```
+Including crop as random effect renders basically the same model fit.
 
-Including crop as random effect yields basically the same model fit.
-
-### 2.6 Check R^2^
-
-I also want to check the R2.  
-
-```{r, warning = FALSE, message = FALSE}
-r.squaredGLMM(m0)
-r.squaredGLMM(m1)
-r.squaredGLMM(m2)
-r.squaredGLMM(m3)
-```
-Again, the model with the interaction is a better fit and Crop as random effect does no make much difference. 
-
-### 2.7 Model 
+### 2.5 Model 
 
 ```{r}
 
-m2 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+m4 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
-summary(m2)
+summary(m4)
 
 ```
 
-Compared to conventional agriculture, biodiversity was significantly higher under conservation agriculture ($\overline{U}_{LRR}$ = 0.49, CI: 0.40 to 0.57, t = 12.236). However, it was lower in disturbed forest ($\overline{U}_{LRR}$ = -0.86,  CI: 1.43 to -0.28, t = -2.775), primary vegetation ($\overline{U}_{LRR}$ = -0.7, CI: -1.01 to -0.37, t = -4.002) and sustainable agriculture ($\overline{U}_{LRR}$ = -2.290548, CI:-4.233562 to -0.3475343, t = -2.260)
+Compared to conventional agriculture, biodiversity was significantly higher under conservation agriculture ($\overline{U}_{LRR}$ = 0.55, CI = 0.55 to 0.63, t = 26.854), disturbed forest ($\overline{U}_{LRR}$ = 0.33, CI = 0.026 to 0.63, t = 2.131), primary vegetation ($\overline{U}_{LRR}$ = 0.28, CI = 0.13 to 0.44, t = 3.541) and sustainable agriculture ($\overline{U}_{LRR}$ = 0.57, CI = 0.23 to 0.91, t = 3.284). Under mixed agriculture, biodiversity was lower relative to conventional agriculture ($\overline{U}_{LRR}$ = -0.06, CI = -0.10 to -0.01, t = -2.541), which 
 
-These results are against what I would expect. 
 
-### 2.8  Model goodness-of-fit
+### 2.6  Model goodness-of-fit
 
-Now, I will assess the model's goodness. The model is model 2, wich includes the interaction biodiversity_metric_category:Treatment and Crop as random effect.
+Now, I will assess the model's goodness. The model is model 4, which includes treatment as fixed effect and  ID and Crop as random effects. I took the code for the diagnostic plots from the [website](https://www.ssc.wisc.edu/sscc/pubs/MM/MM_DiagInfer.html#diagnostics) 
 
 ```{r}
 # Residuals vs Fitted
 
-plot(m2)
+plot(m4)
 ```
 
-Non-linear relationship and Heteroscedasticity.
+Not good. Non-linear relationship between predictors and Heteroscedasticity.
 
 ```{r}
 # Normality of residuals
 
-qqnorm(residuals(m2))
+qqnorm(residuals(m4))
 ```
 
-Actually not too bad, reflects zero inflation.
+Actually not that bad. It looks better when squinting. Reflects zero inflation.
 
 ```{r}
 # Residuals vs Leverage
@@ -271,44 +241,43 @@ ggplot(data.frame( lev = hatvalues(m2), pearson = residuals( m2, type = "pearson
       aes(x = lev, y = pearson)) +
     geom_point() +
     theme_bw()
-
-
-
 ```
 
+I do not really know how to interprete this plot.
 
 ```{r}
 ## scale-location plot, with red smoothed line
 
 scale_loc_plot <- function(m, line.col = "red", line.lty = 1,
                            line.lwd = 2) {
-  plot(m0, sqrt(abs(resid(.))) ~ fitted(.),
+  plot(m4, sqrt(abs(resid(.))) ~ fitted(.),
        type = c("p", "smooth"),
        par.settings = list(plot.line =
                              list(alpha=1, col = line.col,
                                   lty = line.lty, lwd = line.lwd)))
 }
 
-scale_loc_plot(m0)
+scale_loc_plot(m4)
 ```
+Again we can see heteroscedasticity.
 
-### 2.9 Model with Crop as fixed effect
+### 2.7 Model with Crop as fixed effect
 
 I will also show the results of the model with Crop as fixed effect, since it can also be of interest.
 
 ```{r}
 
-m3 <- blmer(LRR ~ Treatment + Crop + biodiveristy_metric_category:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+m5 <- blmer(LRR ~ Treatment + Crop + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
-summary(m3)
+summary(m5)
 
 ```
 
-### Taxon level
+### 2.8 Taxon level
 
 ```{r}
 
-m3 <- blmer(LRR ~ Treatment + Kingdom:Treatment + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+m3 <- blmer(LRR ~ Treatment + Kingdom + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
 summary(m3)
 
