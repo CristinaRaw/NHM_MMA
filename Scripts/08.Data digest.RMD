@@ -12,7 +12,7 @@ library(here)
 
 
 In  this html I am going to digest the crop data I have extracted from syntheses on agricultural production systems
-on biodiversitt. The aim is to provide an easy overview of the data set. I am going to classify the data  according to VividEconomics land-use classes.  
+on biodiversity. The aim is to provide an easy overview of the data set. I am going to classify the data  according to VividEconomics land-use classes.  
 
 The **data set**  consists of the data I have extracted from the included papers, data on the impact
 of different production systems of the selected crops on biodiversity. The data are quantitative and qualitative
