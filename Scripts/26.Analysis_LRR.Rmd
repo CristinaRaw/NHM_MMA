@@ -94,8 +94,6 @@ treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = 
 
 treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
 
-
-
 d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
 
 ```
@@ -110,7 +108,7 @@ It looks fairly normal to me!
 
 nonzero <- read_excel(here("Datasets", "06.Excel_Dataset_to_model_LRR_WIDE.xlsx"))
 
-m0 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = nonzero)
+m0 <- blmer(LRR ~ 1 + + (1|Paper_ID) + (1|Crop), weights = Weight, data = nonzero)
 
 hist(residuals(m0))
 qqnorm(resid(m0))
@@ -125,7 +123,7 @@ Zero-inflated, but that's all. The zeros won't influence in the output.
 
 # Null model with only random effect to see qq plot of weighted residuals 
 
-m1 <- blmer(LRR ~ 1 + (1|Crop), weights = Weight, data = d)
+m1 <- blmer(LRR ~ 1 + (1|Crop) + (1|Paper_ID), weights = Weight, data = d)
 
 hist(residuals(m1))
 qqnorm(resid(m1))
@@ -209,6 +207,7 @@ m4 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, co
 
 summary(m4)
 
+saveRDS(m4, "model.rds")
 ```
 
 Compared to conventional agriculture, biodiversity was significantly higher under conservation agriculture ($\overline{U}_{LRR}$ = 0.55, CI = 0.55 to 0.63, t = 26.854), disturbed forest ($\overline{U}_{LRR}$ = 0.33, CI = 0.026 to 0.63, t = 2.131), primary vegetation ($\overline{U}_{LRR}$ = 0.28, CI = 0.13 to 0.44, t = 3.541) and sustainable agriculture ($\overline{U}_{LRR}$ = 0.57, CI = 0.23 to 0.91, t = 3.284). Under mixed agriculture, biodiversity was lower relative to conventional agriculture ($\overline{U}_{LRR}$ = -0.06, CI = -0.10 to -0.01, t = -2.541), which 
