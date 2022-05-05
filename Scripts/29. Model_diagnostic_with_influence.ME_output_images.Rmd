@@ -1,0 +1,285 @@
+---
+title: "29. Model_diagnostic_with_influence.ME_output_images"
+author: "Christina Raw"
+date: "5/5/2022"
+output: html_document
+---
+
+There is a problem with the lme4 package. When I run the model, it saves it in the environment as <Object with null pointer>. I can run the code chuncks separately, but I can't knit the document as I get the following error "object m4 (the model) not found".This rmd shows images of the outputs, obtained in script 28.
+
+Since it looked like there were influential observations in the model, in this script I am going to assess the presence of influential observations and groups using the package influence.ME.
+
+## 1. Prepare data set
+
+```{r, eval=FALSE}
+library(influence.ME)
+library(readxl)
+library(here)
+library(tidyverse)
+library(robustlmm)
+
+# Load and prepare data set as used to model
+
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
+
+d$Crop <- as.factor(d$Crop)
+d$Treatment <- as.factor(d$Treatment)
+d$magpie_class <- as.factor(d$magpie_class)
+d$Weight <- as.numeric(d$Weight)
+d$biodiveristy_metric_category <- as.factor(d$biodiveristy_metric_category)
+
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+
+# Include monoculture in conventional 
+
+d$Treatment[d$Treatment == "Monoculture"] <- "Conventional"
+
+# Subset agricultural systems with >= 10 observations
+
+treatment_obs <- as.data.frame(table(d$Treatment))
+colnames(treatment_obs) <- c("Treatment", "N_Observations")
+treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+
+treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+
+d <- d[d$Treatment %in% treatment_obs$Treatment, ] 
+
+#Re level data set so conventional is the reference category
+
+d$Treatment <- as.factor(d$Treatment)
+d$Treatment <- relevel(d$Treatment, ref = "Conventional")
+
+```
+
+## 2. Model
+
+```{r, eval= FALSE}
+library(blme)
+m4 <- blmer(LRR ~  Treatment + (1|ID) + (1|Crop), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.fail")
+
+```
+
+## 3. Test influential data 
+
+I tested for influential data using the package influence.ME and following the tutorial provided by Nieuwenhuis, R., *et al.* (2012) <https://journal.r-project.org/archive/2012/RJ-2012-011/RJ-2012-011.pdf>
+
+To  detect influential data in generalized mixed effects models, one has to measure the influence of a particular higher level group on the estimates of a predictor measured at that level. The straightforward way is to delete all observations from the data that are nested within a single higher level group, then re-estimate the regression model, and finally evaluate the change in the estimated regression parameters. This procedure is then repeated for each higher-level group separately. The influence function in the influence.ME package performs this procedure automatically, and returns an object containing information on the parameter estimates excluding the influence of each higher level group separately. 
+
+```{r, eval = FALSE}
+estex.m4 <- influence(m4, group = "ID")
+```
+
+### DFBETAS
+
+DFBETAS is a standardized measure that indicates the level of influence observations have on single parameter estimates (Fox, 2002). Regarding mixed models, this relates to the influence a higher-level unit has on the parameter estimate. DFBETAS is calculated as the difference in the magnitude of the parameter estimate between the model including and the model excluding the higher level case. 
+
+As a rule of thumb, a DFBETAS cut-off value is given for DFBETAS (Belsley *et al.*, 1980):
+
+$$2 /\sqrt{n}$$
+in which *n* refers to the number of groups in the grouping factor under evaluation. Values exceeding this cut-off value are regarded as overly influencing the regression outcomes for that specific estimate.
+
+```{r, eval = FALSE}
+# Obtain dfbetas values
+
+dfbetas <- as.data.frame(dfbetas(estex.m4))
+
+# Obtain dfbetas cutoff value. Dfbetas larger than this value are influential observations
+
+2/sqrt(length(unique(d$ID)))  
+
+# Filter the dfbetas values for influential observations 
+
+influential_dfbetas <- dfbetas %>% filter_all(any_vars(. > 0.1070575))
+influential_dfbetas[influential_dfbetas < 0.1070575] <- "NA" 
+
+# Select the columns that have influential data. I do it manually because I don't know the function to do it and I am wasting too much time 
+
+influential_dfbetas <- select(influential_dfbetas, "(Intercept)" , TreatmentConservation,                               TreatmentDisturbed_forest, Treatmentmixed,
+                              TreatmentPrimary_vegetation)
+```
+
+![](Images/dfbetas_dataframe.PNG)
+
+This is a data frame of the agricultural systems that have influential observations. The row number indicates the ID of the influential observation. 
+
+```{r, eval = FALSE}
+# Plot. The parameters I selected are the treatments that have influential data
+
+plot(estex.m4, which="dfbetas", parameters = c(1, 2, 3, 5, 7), xlab="DFbetaS", ylab="ID")
+
+```
+
+![](Images/dfbetas_plots.PNG)
+
+There are so many ID groups that they appear collapsed in the x axis. However, we can see that there are influential observations, and they more or less align with the data frame data. 
+
+### Cook's distance
+
+The measure of Cook’s distance allows to determine the influence a single higher-level group has on the estimates of multiple variables simultaneously. Cook’s distance provides a summary measure for the influence a higher level unit exerts on all parameter estimates simultaneously, or a selection thereof. Cases are regarded as too influential if the associated value for Cook’s Distance exceeds the cut-off value of: 
+$$4 /n$$
+in which n refers to the number of groups in the grouping factor under evaluation.
+
+```{r, eval = FALSE}
+# Obtain Cook's distance values
+
+cook <- cooks.distance(estex.m4, sort=TRUE)
+
+# Obtain Cook's distance cutoff values. Values larger than this value are influential observations
+
+4/length(unique(d$ID))
+
+```
+
+[1] 0.01146132
+
+```{r, eval = FALSE}
+# Cooks distance
+
+plot(estex.m4, which = "cook", cutoff = 0.01146132, sort = TRUE, xlab = "Cook´s Distance", ylab = "Observation ID") 
+
+```
+
+![](Images/Rplot04.png)
+
+In red are the the observations that are influential on the model.
+
+### Testing for Changes in Statistical Significance (sigtest)
+
+The sigtest function is used to test for changing levels of significance after deletion of each of the 349 ID groups. In this case I will apply it on the treatments that showed influential data: conventional (intercept), conservation, mixed, disturbed forest and primary vegetation. 
+
+
+When Change.Sig = TRUE, the significance of the estimate for that agricultural system changed when removing the influential observations. 
+
+```{r, eval = FALSE}
+# Intercept (conventional)
+
+sigtest(estex.m4, test=1.96)$Intercept %>% subset( Changed.Sig == "TRUE")
+```
+
+![](Images/conventional_sigtest.PNG)
+
+```{r, eval = FALSE}
+# Conservation
+
+sigtest(estex.m4, test=1.96)$TreatmentConservation %>% subset(Changed.Sig == "TRUE")
+```
+
+![](Images/conservation_sigtest.PNG)
+
+```{r, eval = FALSE}
+# Mixed
+
+sigtest(estex.m4, test=1.96)$Treatmentmixed %>% subset(Changed.Sig == "TRUE")
+```
+
+![](Images/mixed_sigtest.PNG)
+
+```{r, eval = FALSE}
+# Disturbed forest 
+
+sigtest(estex.m4, test=1.96)$TreatmentDisturbed_forest %>% subset(Changed.Sig == "TRUE")
+```
+
+![](Images/disturbed_forest_sigtest.PNG)
+
+When the influential observations are removed, the significance of disturbed forest changes from significant to non-significant. The blme t-test estimate is 2.131, whereas here it lowers below 1.96. 
+
+I went back to the data set to see these observations. It is true that the values for those observations are high, but the data is correct. So I would not want to remove them.
+
+```{r, eval = FALSE}
+# Primary vegetation 
+
+sigtest(estex.m4, test=1.96)$TreatmentPrimary_vegetation %>% subset(Changed.Sig == "TRUE")
+
+```
+
+![](Images/prim_veg_sigtest.PNG)
+
+## Robust package
+
+I tried fitting the model using the robustlmm package (Koller, M., 2016) and following the example provided in the reference <https://cran.r-project.org/web/packages/robustlmm/vignettes/rlmer.pdf>. The robustlmm package robustly fits a linear mixed-effects model by fitting a random effects contamination model that accounts for potential contamination or outliers on different sources of variability. 
+
+```{r, eval = FALSE}
+# Robust model
+
+robust_model <- rlmer(LRR ~  Treatment + (1|ID) + (1|Crop), data = d)
+
+summary(robust_model)
+```
+
+![](Images/robust_summary.PNG
+
+The estimates values are quite strange.
+
+```{r, eval = FALSE}
+plot(robust_model)
+```
+
+![](Images/robust_plot_1.png)
+The mean should of the residuals should be around zero.
+
+![](Images/robust_plot_2.png)
+The light blue line are the control zero observations. Without it the qqplot does not look too bad
+
+![](Images/robust_plot_3.png)
+
+### Tuning the fit
+
+The estimates of σ and θ have a low efficiency if the same tuning parameters are used as for estimating the fixed and random effects. To get a higher efficiency, we have to increase the tuning parameter of ρ(σ) e and ρ(σ). We use the update function to fit a model with a higher efficiency for the estimates of σ and θ:
+
+```{r, eval = FALSE}
+
+robust2 <- update(robust_model, rho.sigma.e = psi2propII(smoothPsi, k = 2.28), 
+                  rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
+```
+
+To fit only the element of θ that corresponds to the “sample” random effect with higher efficiency, we use:
+
+```{r, eval = FALSE}
+
+rsb <- list(psi2propII(smoothPsi), psi2propII(smoothPsi, k = 2.28))
+robust3 <- update(robust2, rho.sigma.b = rsb)
+
+```
+
+To compare the estimates of the various fits we did so far, we can use the function compare.
+
+```{r, eval = FALSE}
+compare(robust_model, robust2, robust3, show.rho.functions = FALSE)
+```
+
+![](Images/robust_comparison.PNG)
+
+We can see the estimates and standard errors (in parenthesis) of the variables when increasing the efficiency of the robust model. The estimates change vary from the ones obtained in the original model, which is the blme model: 
+
+![blme estimates](Images/blme_estimates.PNG)
+
+
+### Robust plots
+
+```{r, eval = FALSE}
+plot(robust2)
+```
+
+![](Images/robust2_plot1.png)
+![](Images/robust2_plot2.png)
+```{r, eval = FALSE}
+plot(robust3)
+
+```
+
+![](Images/robust3_plot1.png)
+
+![](Images/robust3_plot3.png)
+It seems that increasing the efficiency of the robust model brings the residuals closer to a mean of zero and improves the qq-plot. 
+
+## Conclusion
+
+Only the influential observations for disturbed forest affected the significance of the estimate. However, the data was correct. Therefore, I will not remove the influential observations for the distubed forest, as the data are correct, or the rest of the influential observations, as they do not affect the significance of the estimates. 
+
+As for the robust package, it looked like it improved the qq plot and residuals vs fitted plots, therefore I will use the robust model. 
+
+
+
