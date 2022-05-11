@@ -21,6 +21,41 @@ robust_coefficients <- robust %>%  summary() %>% .$coefficients %>%
 # to report absolute LRR and percentage change relative to conventional. To do so,
 # I have to add the intercept (conventional) value ( = 0.02) to each level.
 
+    # 1) Blmer model
+
+names(blmer_coefficients) <- c( "Original_LRR", "SE", "t") # Change names to make
+# code easier
+
+blmer_coefficients$Adjusted_LRR <- ""  # New column where I will store adjusted
+# values after conventional (= 0.02) has 
+# been set to 0
+
+blmer_coefficients$Adjusted_LRR[1] <- 0 # Adjust conventional to 0
+
+for (i in 1:length((blmer_coefficients$Original_LRR))) { # Adjust other levels
+  ifelse(i > 0, 
+         blmer_coefficients$Adjusted_LRR[i] <- blmer_coefficients$Original_LRR[i] - 0.04, 
+         blmer_coefficients$Adjusted_LRR[i] <- blmer_coefficients$Original_LRR[i] - 0.04)
+}
+
+
+# Obtain other coefficients: CI, percentage_change
+
+#Change Adjusted_LRR class to numeric (idk why it came out as character after
+# the for loop)
+
+blmer_coefficients$Adjusted_LRR <- as.numeric(blmer_coefficients$Adjusted_LRR)
+
+blmer_coefficients <- blmer_coefficients %>% 
+  mutate(LCI = Adjusted_LRR - (1.96 * SE),
+         UCI = Adjusted_LRR + (1.96 * SE),
+         percentage_change = 100 * (exp(Adjusted_LRR) - 1)) %>% 
+  round(digits = 2) %>% 
+  mutate(CI = paste( LCI, "to", UCI))
+
+
+    # 2) Robust model 
+
 names(robust_coefficients) <- c( "Original_LRR", "SE", "t") # Change names to make
                                                             # code easier
 
