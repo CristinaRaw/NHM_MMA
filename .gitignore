@@ -11,6 +11,7 @@
 
 README.txt
 *.html
+*.rds
 
 # History files
 .Rhistory
