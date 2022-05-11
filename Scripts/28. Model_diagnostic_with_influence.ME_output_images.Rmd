@@ -207,6 +207,7 @@ I tried fitting the model using the robustlmm package (Koller, M., 2016) and fol
 robust_model <- rlmer(LRR ~  Treatment + (1|ID) + (1|Crop), data = d)
 
 summary(robust_model)
+
 ```
 
 ![](Images/robust_summary.PNG
@@ -267,7 +268,6 @@ plot(robust2)
 ![](Images/robust2_plot2.png)
 ```{r, eval = FALSE}
 plot(robust3)
-
 ```
 
 ![](Images/robust3_plot1.png)
