@@ -1,9 +1,9 @@
 # Christina Raw. 22/3/2022
-# After having calculated the weighted means, I realised they are not very useful,
+# After having calculated the weighted means, I realized they are not very useful,
 # so I am going to try to model. For this, I completed the control information and 
 # now the next steps are: 
 #   1. Subset LRR and % change data
-#   2. Transform LRR into % data and merge datasets
+#   2. Transform LRR into % data and merge data sets
 #   3. Input column for control biodiversity value ( = 100) and a column for the 
 #      intervention biodiversity value that is the difference to the reference 
 #      value.
