@@ -1,0 +1,282 @@
+---
+title: "21. Analysis"
+author: "Christina Raw"
+date: "23/3/2022"
+output: html_document
+---
+
+In this script I am going to analyse how biodiversity responds to different agricultural practices. 
+The data set consists of measures of biodiversity under different agricultural systems and crops.
+
+## Model components:
+
+**y**: continuous, biodiversity quantitative measure 
+
+**x**: categorical, agricultural system. Factor with 8 levels: conservation, conventional, ipm, mixed, organic, traditional, transgenic and unclassified. 
+
+The response of biodiversity to agriculture varies across taxonomic and functional groups and is mediated by a wide array of variables, such as geographical location, spatial scale, level of intensification or proximity to natural habitat, to name a few. 
+
+*Random effects*
+
+ - To test variation in biodiversity response across locations and taxa: geographical location, taxon and functional group
+ - To test variations in biodiversity response caused by to detailed practices: cover crop type, bt type, application of fertilizers/pesticides/herbicides 
+ - To control for methodology: sampling method
+ - To control for variation caused by data nested structure: Paper ID
+ 
+## Model limitations
+
+  - Heterogeneous data set
+
+*biodiversity and agricultural systems in general ->  different types of biodiversity data and systems*
+
+Biomass, efficiency, diversity, development, enzymatic activity, reproduction and survival. 
+
+  - Small sample size: 
+  
+*Heterogeneous data -> small sample size per category -> analysis limitation (low power)*
+
+General consensus of 10 observation per term included in the model. There is not enough data to confidently test relationships between agricultural practices and biodiversity, let alone test variance explained by random effects -> *over fitting*
+
+
+## Approaches
+
+1. Collapsing categories to increase sample size
+
+This does not make sense as the goal of this project is to assess how the different agricultural practices affect biodiversity.
+
+2. From maximal to simplified model 
+
+I do not have enough data to generate a maximal model
+
+3. From simplified model to (if needed) a more complex model
+
+I am going to test the random effects one by one and check the goodness of fit of each model. Once I know which variables are relevant, I will build a maximal model and test its goodness of fit. However, I will not be able to trust the maximal model output as I do not have enough data.
+
+
+```{r, include = FALSE}
+
+library(readxl) # To read excel files
+library(here) # To fetch files 
+library(lme4) # To run more complex linear models
+library(dplyr) # To handle data
+library(lmtest) # To perform likelihood ratio tests
+library(knitr) # To make tables
+
+
+d <- read_xlsx(here("Datasets", "05.Excel_Dataset_to_model.xlsx")) # Load data
+
+# Factorize the categorical variables I will use in the model.
+
+str(d)
+unique(d$biodiveristy_metric_category)
+d$agricultural_system <- as.factor(d$agricultural_system)
+d$Crop <- as.factor(d$Crop)
+d$magpie_class <- as.factor(d$magpie_class)
+d$Phylum <- as.factor(d$Phylum)
+
+
+unique(d$Crop) # Change Bt_CropName into just CropName
+
+d$Crop[d$Crop == "Bt_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "Bt_Sunflower"]<- "Sunflower"
+d$Crop[d$Crop == "Bt_Potato"]<- "Potato"
+d$Crop[d$Crop == "Bt_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "Bt_Maize"]<- "Maize"
+d$Crop[d$Crop == "Bt_Rice"]<- "Rice"
+d$Crop[d$Crop == "GM_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "Bt_Corn"]<- "Corn"
+d$Crop[d$Crop == "Bt_Broccoli"]<- "Broccoli"
+d$Crop[d$Crop == "GM_Potato"]<- "Potato"
+d$Crop[d$Crop == "GM_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "GM_Tomato"]<- "Tomato"
+d$Crop[d$Crop == "Gm_Strawberry"]<- "Strawberry"
+
+```
+
+### Subset per data type: DIVERSITY DATA
+
+```{r, results = 'hide'}
+
+unique(d$biodiveristy_metric_category) # Subset diversity data
+diversity <- subset(d, d$biodiveristy_metric_category == "diversity")
+
+hist(diversity$Intervention_Percentage_Change)
+
+```
+
+# Model
+
+## Basic lm model
+
+```{r}
+
+# Basic y - x relationship
+
+m0 <- lm(Intervention_Percentage_Change ~ agricultural_system, data = diversity)
+summary(m0)
+plot(m0)
+
+```
+
+Residuals vs. fitted not great and Q-Q plot indicates extreme tails of data, another distribution model could potentially fit better... However, I'm going to keep exploring this line of thought.
+
+### Tukey test
+
+```{r}
+
+m0.aov <- aov(m0)
+tukey.test <- TukeyHSD(m0.aov)
+tukey.test
+
+```
+
+### Test random effects
+
+```{r}
+
+# Test random effects and assess goodness of fit
+
+m1 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Paper_ID), data = diversity)
+summary(m1) 
+
+```
+
+Paper ID takes up a lot of the variance, probably because as the papers are syntheses, they probaly report data on many different species. So, does including paper_ID as random effect make sense?
+
+```{r}
+
+m2 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Crop), data = diversity)
+summary(m2) 
+
+```
+
+Crop explains 25 % of the variance
+
+```{r}
+
+m3 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Phylum), data = diversity)
+summary(m3) 
+
+```
+
+Phylum explains even more than crop (36%)
+
+There is a lot of within group variance because the data set is very heterogeneous and is mixing apples with pears. 
+
+However, first I want to test whether including the random effects improve the model fit?
+
+### Likelihood ratio tests
+
+```{r}
+
+m1 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Paper_ID), data = diversity)
+m2 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Paper_ID) + (1|Crop), data = diversity)
+
+```
+This error occurs when the variance of a random effect is 0 or when the correlation between fixed effects is = - 1. In this case, the variance for the Crop random effect is causing this error (= 0). 
+This can be due to a case of over fitting of the model, there is not enough data get all the estimates for the more complex model. Therefore, I cannot test whether including the random effects improves the model. 
+
+```{r, error=TRUE}
+
+m1 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Paper_ID), data = diversity)
+m2 <- lmer(Intervention_Percentage_Change ~ agricultural_system + (1|Paper_ID) + (1|Phylum), data = diversity)
+
+lrtest(m1, m2)
+
+```
+
+Error caused due to NAs in rows, which means the models are based on different data sets. I have to go back and complete the phylum data.
+
+## GLM
+
+Since the data looked like it had a poisson distribution, I am going to try doing a glm
+
+```{r}
+hist(diversity$Intervention_Percentage_Change)
+
+```
+
+It does look like a poisson distribution. Let's try a glm on the whole diversity dataset.
+
+```{r}
+
+diversity$abundance <- round(diversity$Intervention_Percentage_Change, digits = 0) # Because poisson is integer
+
+g0 <- glm(abundance ~ agricultural_system, family = "poisson", data = diversity)
+summary(g0)
+
+```
+
+Very over dispersed, not good.
+
+
+
+
+# Wait, I can't mix all the data together, because they have different distributions
+ 
+## Diversity data
+ 
+Within the diversity data set I have data with different distributions. In the diversity data set, I have the following data types: 
+
+```{r, echo = FALSE}
+
+kable(table(diversity$Biodiversity_measure))
+
+```
+
+For example, abundance has a poisson distribution, whereas species richness can have a normal distribution. Therfore, I have to apply different models to each type of data.
+
+### Abundance N = 64
+
+Normally abundance data has a Poisson distribution. But, because this abundance data comes from transforming the percentages, I don't think it can be considered count data and have a poisson distribution. Actually, what distribution does the data have? 
+
+```{r}
+
+abundance <- subset(diversity, Biodiversity_measure == "Abundance") # Make abundance data set
+hist(abundance$Intervention_Percentage_Change)
+
+```
+
+However, this does not look like a poisson distribution. I'm not sure.... I am going to try out the glmm. 
+
+```{r}
+abundance$abundance <-  round(abundance$Intervention_Percentage_Change, digits = 0) # Because poisson is integer
+
+g0 <- glm(abundance ~ agricultural_system, family = "poisson", data = abundance)
+summary(g0)
+
+```
+
+Very strange values and very over dispersed...not good.
+
+I'm going to do a linear model instead of a generalised linear model, as this is not the typical abundance data with poisson distribution.
+
+```{r}
+
+# Basic lm model: relationship abundance ~ agricultural system
+
+m1 <- lm(Intervention_Percentage_Change ~ agricultural_system, data = abundance)
+summary(m1)
+plot(m1)
+```
+
+Bad diagnostic plots. Residuals vs fitted do not have a normal distribution. The Q-Q plot the data distribution has extreme tails, which we know from the histogram. Given these results, I don't think lm is a good approach.
+
+This brings me to the next question. What is the distribution of the data? Since the data comes from transforming percentage data...
+
+# But wait, all the data comes from transfomring a percentage change so...in this case all the data IS the same?
+
+Generally, biodiversity data can show different distributions. However, in this case, since the data comes from transforming percentage change into absolute values, I am not really sure about wether I have to subset pert type of data or what the data distribution is.
+
+ 
+# Conclusions...
+
+  - What is the data type and distribution?
+  - Try to fix glm model for all diversity data set, keep investigating
+  - Need more data
+  - Fill out NAs
+  - Repeat for coarse analysis. Might be able to do more things with increased sample size
+  
+  -Question: can I add the control data to the treatment data and just treat it as more data?
+
+
