@@ -1,0 +1,256 @@
+---
+title: "CropQuantitativeDataDigest"
+author: "Christina Raw"
+date: "7/3/2022"
+output: html_document
+---
+
+
+## Number of observations per magpie class and, within class, number of observations per production system
+
+There is enough data to compare production systems for cereals, oil crops, and sugar.
+Maybe it could also be done for other annual crops.
+
+```{r, message = FALSE,  echo = FALSE}
+
+rm(list=ls())
+library(dplyr)
+library(writexl)
+
+library(here)
+d <- read.csv(here("Data/01.Processed_Data/04.Magpie_classes",  "Csv_Magpie_Crops_Quantitative_spreadsheet.csv"), row.names = 1) # Load data
+
+magpie_data <- as.data.frame(table(d$magpie_class))
+
+colnames(magpie_data) <- c("Magpie class", "N observations" )
+
+library(knitr)
+
+# print the results
+
+kable(magpie_data, row.names = TRUE)
+
+```
+
+
+
+```{r, message = FALSE,  echo = FALSE}
+
+library(tidyr)
+
+d$Crop[d$Crop == "Bt_Corn"]<- "Corn"
+d$Crop[d$Crop == "Bt_Potato"]<- "Potato"
+d$Crop[d$Crop == "Bt_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "Bt_Eggplant"]<- "Eggplant"
+d$Crop[d$Crop == "Bt_Rice"]<- "Rice"
+d$Crop[d$Crop == "Bt_Maize"]<- "Maize"
+d$Crop[d$Crop == "Bt_Sunflower"]<- "Sunflower"
+d$Crop[d$Crop == "Bt_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "GM_Rape"]<- "Rape_seed"
+d$Crop[d$Crop == "Bt_Broccoli"]<- "Broccoli"
+d$Crop[d$Crop == "GM_Potato"]<- "Potato"
+d$Crop[d$Crop == "GM_Cotton"]<- "Cotton"
+d$Crop[d$Crop == "GM_Tomato"]<- "Tomato"
+d$Crop[d$Crop == "Gm_Strawberry"]<- "Strawberry"
+
+
+magpie_reshape <- select(d, magpie_class, agricultural_system)
+magpie_reshape <- as.data.frame(table(magpie_reshape))
+
+magpie_reshape <- magpie_reshape %>% group_by(magpie_class) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+kable(magpie_reshape, row.names = TRUE)
+
+```
+
+
+## For each crop, number of observations and papers 
+
+```{r, message = FALSE,  echo = FALSE}
+
+# 1. Add magpie classes column
+
+magpie <- read.csv2(here("Data/01.Processed_Data/04.Magpie_classes", "CSV_Magpie_classess.csv"))
+
+crop_data <- as.data.frame(table(d$Crop))
+
+  # Add column with magpie classes
+colnames(crop_data)[1] <- "Crop"
+colnames(crop_data)[2] <- "N"
+
+colnames(magpie)[3] <- "My_crops"  # Change column name that bothered me
+
+#Input magpie classes into my d data set
+magpie <- na.omit(magpie)  # First I remove rows with NA in the magpie data set
+                           # for two reasons: 
+                           # 1. NA rows means I don't have data for that crop
+                           # 2. NA's will interrupt the following for loop
+
+crop_data$Magpie_class <- ""  # Create column where I will store the info
+
+for (i in (1:22)){
+  #browser()
+  for (j in (1:31)){
+    if (crop_data$Crop[i] == magpie$My_crops[j]){
+      crop_data$Magpie_class[i] <- magpie$Magpie_classess[j]
+    }}}
+
+# Correct barley
+magpie[5,3] <- "Barley"
+
+# Rerun loop 
+
+for (i in (1:22)){
+  #browser()
+  for (j in (1:31)){
+    if (crop_data$Crop[i] == magpie$My_crops[j]){
+      crop_data$Magpie_class[i] <- magpie$Magpie_classess[j]
+    }}}
+
+
+crop_data <- relocate(crop_data, Magpie_class, .before = Crop) # Reorder columns
+
+# 2. Count papers per crop
+
+papers <- select(d, Crop, Paper_ID)
+
+data_count_1 <- aggregate(data = papers,                  # Count the number of 
+                          Paper_ID ~ Crop,                # per crop
+                          function(x) length(unique(x)))
+
+crop_Nstudies_Npapers <- merge(crop_data,data_count_1, by="Crop")  # Make table
+
+    #Change colnames and oder in descending number of observations
+
+colnames(crop_Nstudies_Npapers)[c(3,4)] <- c("N", "Number of papers" )
+
+crop_Nstudies_Npapers <- crop_Nstudies_Npapers[order(-crop_Nstudies_Npapers$N),]
+
+
+# 3. Make table
+
+kable(crop_Nstudies_Npapers, row.names = TRUE)
+
+```
+
+## For each crop, number of observations per agricultural system
+
+If I transform all the data into the same format, I could compare:
+
+  - Cotton: mixed and transgenic
+  - Maize: conservation, mixed, transgenic
+  - Potato (potentially): conventional, organic, transgenic
+  - Rapeseed: IPM and transgenic
+  - Sugarcane: conservation and conventional
+  - Wheat: conventional and organic
+
+```{r,  message = FALSE,  echo = FALSE}
+
+library(tidyr)
+
+# Magpie reshape 
+
+magpie_reshape <- select(d, Crop, agricultural_system)
+magpie_reshape <- as.data.frame(table(magpie_reshape))
+
+magpie_reshape <- magpie_reshape %>% group_by(Crop) %>% pivot_wider(names_from = agricultural_system,
+                                          values_from = Freq)
+kable(magpie_reshape, row.names = TRUE)
+
+```
+
+## For each crop, number of effect size observations
+
+```{r, message = FALSE, echo = FALSE}
+
+library(tidyr)
+
+d$Effect_size[d$Effect_size == "Hedges’ d"]<- "Hedges' d"
+d$Effect_size[d$Effect_size == "Hedges_d"]<- "Hedges' d"
+
+reshape <- select(d, Crop, Effect_size)
+reshape <- as.data.frame(table(reshape))
+
+reshape <- reshape %>% group_by(Crop) %>% pivot_wider(names_from = Effect_size,
+                                          values_from = Freq)
+
+kable(reshape, row.names = TRUE)
+
+
+```
+
+
+```{r,eval = FALSE, echo = FALSE}
+
+# Save data frames
+
+write_xlsx(magpie_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_MagpieClasses.xlsx")
+write.csv(magpie_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_MagpieClasses.csv")
+
+write_xlsx(crop_data, "Outputs/06.Magpie_classes/DataDigest/Excel_DataDigest_CropData.xlsx")
+write.csv(crop_data, "Outputs/06.Magpie_classes/DataDigest/CSV_DataDigest_CropData.csv")
+
+write_xlsx(crop_Nstudies_Npapers, "Outputs/06.Magpie_classes/DataDigest/Crops_Nstudies_Npapers.xlsx")
+```
+
+
+## For each prodcution system, number of observations and papers  
+
+Potentially useful to do an analysis per agricultural system. It seems as there could be 
+enough data for all production systems except unclassified and IPM.
+
+```{r, include = FALSE}
+
+systems <- aggregate(data = d,                        # Count the number of papers
+               Paper_ID ~ agricultural_system,        # per agricultural system
+               function(x) length(unique(x)))                                     
+               
+
+systems_obs <- as.data.frame(table(d$agricultural_system))
+colnames(systems_obs) <- c("agricultural_system", "N of observations")
+
+systems <- merge( systems_obs, systems, by = "agricultural_system")
+systems <- systems[order(-systems$`N of observations`),]
+
+colnames(systems) <- c("agricultural_system", "N of observations", "N of papers")
+
+```
+
+
+
+```{r, echo = FALSE}
+
+
+kable(systems, row.names = TRUE)
+
+```
+
+
+
+
+# Conclusion
+
+  1. There is enough data to compare production systems for the following commodities:
+    cereals, oil crops, and sugar. It might be possible too for other annual crops.
+
+  2. If I transform all the data into the same format I could compare: 
+
+  - Cotton: mixed and transgenic
+  - Maize: conservation, mixed, transgenic
+  - Potato (potentially): conventional, organic, transgenic
+  - Rapeseed: IPM and transgenic
+  - Sugarcane: conservation and conventional
+  - Wheat: conventional and organic
+
+  3. Potentially useful to do an analysis per agricultural system. It seems as there is 
+enough data for all production systems except unclassified and IPM
+  
+  4. Problem: since the data came from syntheses, many observations do not come with 
+variance data, which is needed to perform a meta analysis. 
+
+  - Solution: extract the data from the individual studies included in the syntheses.
+However, that will postpone the meta analysis.
+
+  - Solution: look for information on how to perform meta analysis without variance data.
+
+.

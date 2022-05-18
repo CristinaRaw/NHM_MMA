@@ -1,0 +1,109 @@
+---
+title: "27.Sainsbury_data_digest"
+author: "Christina Raw"
+date: "25/4/2022"
+output: html_document
+---
+
+In this script I am going to digest the updated data set so we can convince Sainsbury's that the project is possible and they should stay with us and save biodiversity!!
+
+The data consists of percentage change and Log Response Ratio measures of biodiversity (e.g., abundance) under different agricultural systems. I have extracted the data from syntheses (reviews or meta-analyses) on how agricultural production systems impact biodiversity. The aim is to provide an easy overview of the data set. I am going to classify the data  according magpie crop classification and and VividEconomics land-use classes.  
+
+VividEconomics has the following cropland land use classes:
+  - Annual crops: rice, maize, tropical cereals, temperate cereals, cotton seed, groundnuts, sunflower, other oil crops (including rape seed), fruits, vegetables and nuts.
+  
+  - Perennial crops: sugar beet, sugar cane, short rotation grasses (bioenergy), short rotation trees (bioenergy), potato, oil palm and tropical roots.
+    
+  - N-fixing crops: pulses and soy.  
+   
+Magpie crop classes are the following:
+
+![](Images/MagpieCategories.png)
+
+VividEconomics has the following cropland land use classes:
+  - Annual crops: rice, maize, tropical cereals, temperate cereals, cotton seed, groundnuts, sunflower, other oil crops (including rape seed), fruits, vegetables and nuts.
+  
+  - Perennial crops: sugar beet, sugar cane, short rotation grasses (bioenergy), short rotation trees (bioenergy), potato, oil palm and tropical roots.
+    
+  - N-fixing crops: pulses and soy.  
+   
+```{r, warning = FALSE, message = FALSE}
+library(readxl) # For reading the excel data set
+library(here) # For specifying file paths
+library(knitr) # For making tables
+library(kableExtra)# for pretty rmd tables
+library(dplyr) # For some data wrangling
+library(tidyr) # For some data wrangling
+```
+
+```{r, echo = FALSE}
+d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))  # Load data
+
+```
+
+### 1.1 Data per VividEconomics cropland land-use classes:
+
+```{r}
+
+     # Annual crops
+
+annual_crops <- subset(d, d$Crop == "Rice" | d$Crop == "Bt_Rice" |
+                          d$Crop == "Maize" | d$Crop == "Bt_Maize" |
+                          d$Crop == "Barley" | d$Crop == "Straw_cereals" |
+                          d$Crop == "Small_grain" | d$Crop == "Sorghum" |
+                          d$Crop == "Wheat" | d$Crop == "Cotton" |
+                          d$Crop == "Bt_Cotton" | d$Crop == "GM_Cotton" |
+                          d$Crop == "Sunflower" | d$Crop == "Bt_Sunflower" |
+                          d$Crop == "Rape_seed" | d$Crop == "Bt_Rape" |
+                          d$Crop == "GM_Rape" | d$Crop == "Bt_Corn" |
+                          d$Crop == "Bt_Eggplant" | d$Crop == "Bt_Broccoli" |
+                          d$Crop == "GM_Tomato" | d$Crop == "Gm_Strawberry")
+
+length(annual_crops$Crop) # 355 records for annual crops
+length(unique(annual_crops$Paper_ID)) # 17 papers
+
+# Perennial crops
+
+perennial_crops <- subset(d, d$Crop == "Sugarbeet" | d$Crop == "Sugarcane" |
+                             d$Crop == "Potato" | d$Crop == "Bt_Potato"| d$Crop == "GM_Potato" |
+                             d$Crop == "Oil_palm" | d$Crop ==  "Cassava")
+                              
+length(perennial_crops$Crop) # 214 records for perennial crops
+length(unique(perennial_crops$Paper_ID)) # 18 papers
+
+
+        # N-Fixing crops
+                              
+N_fixing_crops <- subset(d, d$Crop == "Soybean" | d$Crop == "Maize_Legume" |
+                             d$Crop == "Legume")
+
+length(N_fixing_crops$Crop) # 25 records for N-Fixing crops
+length(unique(N_fixing_crops$Paper_ID)) # 5 papers
+
+```
+
+
+### 1.2 Data per magpie class
+
+```{r, echo = FALSE}
+
+magpie <- as.data.frame(table(d$magpie_class))
+colnames(magpie) <- c("Magpie class", "Number of observations")
+kbl(magpie, caption = "Number of observations per magpie category")
+
+
+```
+
+### 1.2 Data per crop
+
+```{r, echo = FALSE}
+
+crop <- as.data.frame(table(d$Crop))
+colnames(crop) <- c("Crop", "Number of observations")
+kbl(crop, caption = "Number of observations per crop")
+
+d %>% group_by(Crop) %>%  
+  summarise(count = n_distinct(Paper_ID))
+
+```
+
