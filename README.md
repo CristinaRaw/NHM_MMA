@@ -49,6 +49,33 @@ in the screening phase
 - **06.Spreadsheet_curation.R**:  clean the data set: drop unnecesary columns, corece columns into right format, fix typos, etc.
 - **07.Functional_groups.R**: input funcional gorup information
 - **12.Inputing_magpie_classes.R**: the magpie classes are a commodity classification for crops made by the business VividEconomics, which  is slightly
-different from the commodity classification made by FAO. In this script I input a column with the magpie categories. 
-- **20.PreparingDatasetForModelling_Percentage.R**
+different from the commodity classification made by FAO. In this script I input a column with the magpie categories. I also corrected a typo 
+- **20.PreparingDatasetForModelling_Percentage.R**: transform Log Response Ratio (LRR) into percentage to model percentage change data
+- **22.PreparingDatasetForModelling_LRR.R**: prepare the data set for the new modelling approach. Instead of using the data in percentage change format, I use it in LRR. Therefore, this scripts transforms percentage change data into LRR format. There is also some data set cleaning.
+- **23.Approaches_to_LRR_Analysis.Rmd**: more of a EDA script, to see how to approach the LRR analysis
+- **26.Analysis_LRR.Rmd**:  Bayesian analysis of the LRR data to see how different agricultural systems impact biodiversity. Also some data set cleaning
+- **28. Model_diagnostic_with_influence.ME_and_Robust_analysis.Rmd**: there were influential observations in the model (script 26). This script I assess the presence of influential observations using the package influence.ME. The second part performs a robust analysis that accouts for the influential data using the package robustlmm.
+
+`/05.Analysis`
+
+- **21.Percentage_change_analysis.Rmd**: analyse percentage change data
+- **
+
+`z.Data digest`
+
+- **08.Data digest.Rmd**: digest the crop data I have extracted from syntheses on agricultural production systems on biodiversity. The aim is to provide an easy overview of the data set.
+- **13.Crops_quantitative_data_digest.Rmd**: show number of observations per crop and, within class, number of observations per production system 
+- **14.VividEconomics_data_digest.Rmd**: after having inputed the magpie classes, show number of observations per magpie class and, within class, number of 
+observations per production system 
+- **19.WeightedMeansDigest.Rmd**: simmarise biodiversity weighted means under different crops and agricultural systems
+- 
+
+`zzCotton`
+
+The aim of these scripts was to provide a time estimate of how long each step of the meta-analysis takes. To do so, I focused on one single crop, sugar, and 
+recorded how long the scope, screen, and data extraction phases take
+
+- **09. Making_cotton_dataset.R**: extract all the cotton quantitative and qualitative data from the curated data set and save as excel to have a cotton data set to work on and input more data from the cotton papers.
+- **10.MetaDigitise_cotton.R**: use metaDigitise package to extract data from figures and plots from cotton studies
+- **11.Cotton_spreadsheet_curation.R**: clean the top cotton quantitative data extraction spreadsheet
 
