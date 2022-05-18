@@ -8,16 +8,16 @@ output: html_document
 ### 1. Find the first 5 legume crops in the top 50 crops by area harvested list.
 
 Since there is only one legume crop (beans) in the top 15 crops list, I am going to include the first 5 legume crops
-in the top 50 crops (by area harvested) from FAOSTAT's data. The list of crops recognised as legumes (or pulses) 
+in the top 50 crops (by area harvested) from FAOSTAT's data. The list of crops recognized as legumes (or pulses) 
 by FAO can be found in the following link: [legumes](https://www.fao.org/waicent/faoinfo/economic/faodef/faodefe.htm#NOTE)
 
 ```{r, echo = FALSE}
 
 # 1. Load data
 
-crops <- read.csv("Data/00.Raw_Data/00.Scoping/Crops_and_livestock_products/Crops/FAOSTATcrops_primary_total_2019.csv")
+crops <- read.csv("../Data/00.Raw_Data/00.Scoping/Crops_and_livestock_products/Crops/FAOSTATcrops_primary_total_2019.csv")
 
-# 2. Subset the hetare data and sort from most area harvested used to least surface used
+# 2. Subset the hectare data and sort from most area harvested to least area harvested
 
 crops_ha <- subset(crops, crops$Unit == "ha")
 
