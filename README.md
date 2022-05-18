@@ -50,4 +50,5 @@ in the screening phase
 - **07.Functional_groups.R**: input funcional gorup information
 - **12.Inputing_magpie_classes.R**: the magpie classes are a commodity classification for crops made by the business VividEconomics, which  is slightly
 different from the commodity classification made by FAO. In this script I input a column with the magpie categories. 
+- **20.PreparingDatasetForModelling_Percentage.R**
 
