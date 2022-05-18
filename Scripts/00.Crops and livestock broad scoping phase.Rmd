@@ -5,6 +5,15 @@ date: "16/11/2021"
 output: html_document
 ---
 
+```{r, message = FALSE, warning = FALSE}
+
+library(here) # To tell rmd where to find the files 
+library(knitr) # To make tables
+library(dplyr) # For data manipulation
+library(tidyr) # For data cleaning
+```
+
+
 Overall aim: To map out the state of knowledge of the impacts of widespread agricultural land-use systems on local biodiversity. This will identify any important gaps and will also provide a scaffold on which we can build.
 
 Step 1: From FAO, get the most recent data available on area used globally to grow different crops and to farm different livestock species; and also the global value of these crops and species.
@@ -34,7 +43,7 @@ To obtain the top 15 crops farmed globally, first I subset the data set by area 
 
 # Load data set 
 
-crops_primary_total <- read.csv("Data/00.Raw_Data/00.Scoping/Crops_and_livestock_products/Crops/FAOSTATcrops_primary_total_2019.csv")
+crops_primary_total <- read.csv(here("Data", "00.Raw_Data/00.Scoping/Crops_and_livestock_products/Crops/FAOSTATcrops_primary_total_2019.csv"))
 
 colnames(crops_primary_total)
 
@@ -56,7 +65,6 @@ area <- crop_primary_area[1:15,]
 yield <- crop_primary_yield[1:15,]
 production <- crops_primary_production[1:15,]
 
-
 ```
 
 ```{r, echo = FALSE}
@@ -65,9 +73,7 @@ production <- crops_primary_production[1:15,]
 
 top_15_crops <- data.frame(area$Item, area$Value)
 colnames(top_15_crops) <- c("Crop","Hectares")
-save(top_15_crops, file= "Outputs/Top_15_crops_global_area.Rda")
-
-library(knitr)
+save(top_15_crops, file= here("Outputs","Top_15_crops_global_area.Rda"))
 
 kable(top_15_crops, align = "l", caption = "Top 15 crops farmed globally by area", row.names = TRUE)
 
@@ -81,7 +87,7 @@ This data set contains information about the global value of gross production of
 
 ```{r, include = FALSE}
  
-value_total <- read.csv("Data/00.Raw_Data/00.Scoping/Value_agricultural_production/FAOSTAT_value_agricultural_products_total_2019.csv")
+value_total <- read.csv(here("Data", "/00.Raw_Data/00.Scoping/Value_agricultural_production/FAOSTAT_value_agricultural_products_total_2019.csv"))
  
 # Names of the top 15 crops farmed globally
 
@@ -89,9 +95,22 @@ top_15_crops$Crop
 
 # Subset the gross production value of the top 15 crops farmed globally
 
-library(dplyr)
-
-top_15_value <- subset(value_total, value_total$Item == "Wheat" |value_total$Item == "Maize" |value_total$Item == "Rice, paddy" | value_total$Item == "Soybeans"| value_total$Item == "Barley" |value_total$Item == "Sorghum"|value_total$Item == "Seed cotton"|value_total$Item == "Rapeseed"|value_total$Item == "Beans, dry"|value_total$Item == "Millet"|value_total$Item == "Groundnuts, with shell"|value_total$Item == "Oil palm fruit"|value_total$Item == "Cassava"|value_total$Item == "Sunflower seed"|value_total$Item == "Sugar cane" )
+top_15_value <- subset(value_total, 
+                       value_total$Item == "Wheat" |
+                         value_total$Item == "Maize" |
+                         value_total$Item == "Rice, paddy" | 
+                         value_total$Item == "Soybeans"| 
+                         value_total$Item == "Barley" |
+                         value_total$Item == "Sorghum"|
+                         value_total$Item == "Seed cotton"|
+                         value_total$Item == "Rapeseed"|
+                         value_total$Item == "Beans, dry"|
+                         value_total$Item == "Millet"|
+                         value_total$Item == "Groundnuts, with shell"|
+                         value_total$Item == "Oil palm fruit"|
+                         value_total$Item == "Cassava"|
+                         value_total$Item == "Sunflower seed"|
+                         value_total$Item == "Sugar cane" )
 
 
 # Create a table of the top 15 crops farmed globally by area and their gross production value
@@ -112,18 +131,19 @@ Commodity <- c(rep("Cereals & grains", 6), rep("Oils & fats", 2), "Legumes", "Ce
 
 top_15_crop_value <- cbind(top_15_crop_value, Commodity)
 
-write.csv(top_15_crop_value, "Outputs/00.Crops/Top_15_crop_value.csv")
-write.csv(top_15_crop_value, "Data/01.Processed_Data/00.Crops/Top_15_crop_value.csv")
+write.csv(top_15_crop_value, here("Outputs", "00.Crops/Top_15_crop_value.csv")) # Save 
+write.csv(top_15_crop_value, here("Data", "01.Processed_Data/00.Crops/Top_15_crop_value.csv"))
 
 ```
 
 ```{r, echo = FALSE}
  
-# Make table 
+# Make table of the top 15 crops by area and value
 
-top_15_crop_value <- read.csv("Outputs/00.Crops/Top_15_crop_value.csv", row.names = 1)
+rm(top_15_crop_value)
+top_15_crop_value <- read.csv(here("Outputs", "00.Crops/Top_15_crop_value.csv", row.names = 1))
 
-library(knitr)
+top_15_crop_value <- read.csv(here("Outputs", "00.Crops/Top_15_crop_value.csv"), row.names = 1))
 
 kable(top_15_crop_value, caption = "Top 15 crops farmed globally by area and value of gross production", row.names = TRUE)
 ```
@@ -139,11 +159,13 @@ All the information I have found about livestock either talks about number of he
   
 ```{r, echo = FALSE}
 
+# Make data frame with the data from the link above
+
 species <- data.frame(Species = c("Cattle", "Sheep", "Goat", "Horses", "Camels", "Donkeys"), Value= c(1.4, 1.1, 0.8, 56.4, 22, 44), Unit = c("billion", "billion", "billion", "million", "million", "million"))
 
-write.csv(species, "Outputs/01.Livestock/Sandhage-Hofmann.csv")
+write.csv(species, here("Outputs", "01.Livestock/Sandhage-Hofmann.csv"))
 
-library(knitr)
+# Make table of the top cattle species produced
 
 kable(species, caption = "Sandhage-Hofmann, A. (2016) livestock data", align = "l", row.names = FALSE)
 ```
@@ -152,20 +174,18 @@ kable(species, caption = "Sandhage-Hofmann, A. (2016) livestock data", align = "
       
 ```{r, include = FALSE}
 
-library(tidyr)
-library(dplyr)
 
-# Load data set of livestock production and select columns of interest
+# Load FAO's data set of livestock production and select columns of interest
 
-livestock <- read.csv("Data/00.Raw_Data/00.Scoping/Crops_and_livestock_products/Livestock/FAOSTAT_livestock_primary_total_2019.csv") 
+livestock <- read.csv(here("Data", "00.Raw_Data/00.Scoping/Crops_and_livestock_products/Livestock/FAOSTAT_livestock_primary_total_2019.csv"))
 
 livestock <- subset(livestock, livestock$Unit =="No"| livestock$Unit == "1000 Head" | livestock$Unit  == "Head")  
 
 livestock <- select(livestock, 8, 11, 12)
 
-# Load data set of value of agricultural production
+# Load FAO's data set of value of agricultural production
 
-livestock_value <- read.csv("Data/00.Raw_Data/00.Scoping/Value_agricultural_production/FAOSTAT_value_agricultural_products_total_2019.csv")
+livestock_value <- read.csv(here("Data", "00.Raw_Data/00.Scoping/Value_agricultural_production/FAOSTAT_value_agricultural_products_total_2019.csv"))
 
 livestock$Cost <- ""
 
@@ -185,13 +205,12 @@ colnames(livestock)[4]<-"1000 Int. $"
 
 livestock <- livestock [order(-livestock$Value),]
 
-write.csv(livestock, "Outputs/01.Livestock/Livestock_value.csv")
-write.csv(livestock, "Data/01.Processed_Data/01.Livestock/Livestock_value.csv")
+write.csv(livestock, here("Outputs", "01.Livestock/Livestock_value.csv"))
+write.csv(livestock, here("Data", "01.Processed_Data/01.Livestock/Livestock_value.csv"))
 
 ```
 
 ```{r, echo = FALSE}
-library(knitr)
 
 kable(livestock, caption = "FAOSTAT livestock data", row.names = FALSE)
 
@@ -219,6 +238,7 @@ Maps global livestock  density distribution in raster layers, as number of indiv
 
       
       
+
       
 
 
