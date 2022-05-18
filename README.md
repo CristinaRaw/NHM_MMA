@@ -44,7 +44,7 @@ randomise it
 - **05.Spreadsheet_piloting.R**: pilot the data extraction spreadsheet with a random sample of 10 studies of the pool of studies classified as "yes" or "maybe"
 in the screening phase
 
-`/04.Data curation
+`/04.Data curation`
 
 - **06.Spreadsheet_curation.R**:  clean the data set: drop unnecesary columns, corece columns into right format, fix typos, etc.
 - **07.Functional_groups.R**: input funcional gorup information
@@ -68,7 +68,7 @@ different from the commodity classification made by FAO. In this script I input 
 - **14.VividEconomics_data_digest.Rmd**: after having inputed the magpie classes, show number of observations per magpie class and, within class, number of 
 observations per production system 
 - **19.WeightedMeansDigest.Rmd**: simmarise biodiversity weighted means under different crops and agricultural systems
-- 
+
 
 `zzCotton`
 
