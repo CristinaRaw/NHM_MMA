@@ -12,12 +12,11 @@ Another goal of the project is to build a framework that can be used by other re
 
 ## 2. Data
 
-The data coomes from meta-analyses and reviews that research the impact of agricultural systems on biodiversity. The `dataset`file contains two files:
+The data coomes from meta-analyses and reviews that research the impact of agricultural systems on biodiversity. The data sets are stored in the `Git_Datasets` folder., where you can find three files:
 
-  - `name`: original curated data extraction spreadsheet before dropping empty columns
-  - `name`: curated data extraction spreadsheet used in the analysis
-  - `other_data`: contains other data sets used in the project but not in the analysis, such as FAOSTAT data sets used to find ouot which are the top crops
- by value or area harvested
+  - `v3_LONG_Data_extraction_spreadsheet.xlsx`: Raw data extraction spreadsheet before dropping empty columns
+  - `05.Excel_Dataset_to_model_Percentage.xlsx`: curated data extraction spreadsheet used in the percentage change analysis 
+  - `v3_LONG_Data_extraction_spreadsheet.xlsx`: curated data extraction spreadsheet used in the Log Response Ratio analysis 
 
 ## 3. Scripts, what do they each do?
 
