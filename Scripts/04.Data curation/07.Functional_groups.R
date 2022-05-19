@@ -5,58 +5,130 @@ rm(list = ls())
 # extracting the data from the included papers. To quicly obtain the functional groups infromation,
 # I am going to use the data set from my thesis, where I recorded arthropod's functional groups.
 
-# Load the data set I used in my thesis
+library(tidyverse)
 
-thesis_dataset <- read.csv("Data/00.Raw_Data/02.Data_extraction/Clean_spreadsheet_1.csv") 
+# First by kingdom
 
-# Select the columns of interest, those that include taxonomical data and information about  
-# functional groups
+unique(d$Kingdom)
 
-library(dplyr)
+# Clean up
 
-names(thesis_dataset)
+d$Kingdom[d$Kingdom == "Mycorrhizal_fungi"] <- "Fungi"
+d$Kingdom[d$Kingdom == "Actinomyceta"] <- "Bacteria"
+d$Kingdom[d$Kingdom == "Native_palm"] <- "Plantae"
 
-fg <- select(thesis_dataset, "Taxonoic_group", "Order", "Family", "Genus_Species", "Functional_group")
+na.kingdom <- d %>%                        # The NA observations for kingdom
+  subset(is.na(.$Kingdom == TRUE)) %>%     # already have the functional groups
+  as.data.frame()
 
-# Create a data frame that contains unique rows and subset by order. With this information I will be 
-# able to easily get the functional groups for each order. I chose to subset by order first, and then
-# I will see by family.
+# Input functional groups
 
-fg_table <- as.data.frame(unique(fg)) 
+d$Functional_group[d$Kingdom == "Microbes"|
+                     d$Kingdom == "Fungi"|
+                     d$Kingdom == "Bacteria"] <- "Soil"
 
-    # Subset by order
+d$Functional_group[d$Kingdom == "Plantae"] <- "Air_Climate_Freshwater_Soil_ExtremeEvents"
 
+d$Functionalr_group[d$Kingdom == "Forest_species"] <- "NA"
 
-# What I want to do is: for each unique order in the data frame, I want to subset its data. To do so,
-# I have to filter the Order column in the data frame with the names of the orders, and for each order
-# I am going to put its darn in a list. Steps:
+# By animal
 
-    # 1. Create vector with the name of the orders of the data frame
-    # 2. Create a list where I will store the subseted data
-    # 3. Filter the data frame with the name of the orders to subset the information for each order and
-    #    store that information in the list. WARNING: to select data un list you have to use [[]], it's
-    #    just the way it is.
-    # 4. Create data frames with the data for each orderstored in the list.
+animal <- subset(d, d$Kingdom == "Animal")
+unique(animal$Phylum)
 
-order <- unique(fg$Order)  # 1. Create vector with the name of the orders of the data frame 
+which(animal$Phylum == "Invertebate") 
+which(animal$Phylum == "Vertebrates") 
+which(animal$Phylum == "Chordata") 
 
-order_list <- list()   # 2. Create a list where I will store the subseted data
+# Arthropoda by order
+# Invertebrate: too broad <- NA
+# Nematoda: soil //www.nature.com/articles/s41597-020-0437-3
+# Annelida: soil
+# Insecta: by order
+# Vertebrates: too broad
+# Chordata: by class
+# Biodiversity: too broad <- NA
 
-for (ord in order){                                     # 3. For each order in the order verctor, filter 
-  data <- dplyr :: filter( fg_table , Order == ord)     # the Order column in the data frame and when the 
-                                                        # Order in the data frame matches the order in the 
-  order_list[[ord]] <- data                             # vector, subset that data and put in into the list.
-}                                                       # [[ord]] names each subset with the ord name, so 
-                                                        # the subsetted data will be stored in the list under its 
-                                                        # order name. 
+d$Functional_group[d$Kingdom == "Animal" &
+                     d$Phylum == "Invertebrate"] <- "NA"
 
+d$Functional_group[d$Kingdom == "Animal" &
+                     d$Phylum == "Nematoda"] <- "Soil"
 
+d$Functional_group[d$Kingdom == "Animal" &
+                     d$Phylum == "Annelida"] <- "Soil"
 
-col_df <- order_list[["Coleoptera"]]      # 4. Create data frames with the data for each orderstored in the list.
+d$Functional_group[d$Kingdom == "Animal" &
+                     d$Phylum == "Vertebrates"] <- "NA"
 
+d$Functional_group[d$Kingdom == "Animal" &
+                     d$Phylum == "Biodiversity"] <- "NA"
 
+# By arthropod
 
+# Clean up
 
+unique(animal$Phylum)
+arthropod <- subset(d, d$Phylum == "Arthropoda")
+
+unique(arthropod$Class)
+d$Class[d$Class == "Araneae"] <- "Arachnida"
+
+# Input functional group
+
+unique(arthropod$Class)
+myriapoda <- subset(arthropod, Class == "Miryapoda")
+malacostraca <- subset(arthropod, Class == "Malacostraca")
+
+# Insecta: by order or species
+# Arachnida: by order or species 
+# Collembola: soil
+# Edaphic_arthropods: soil
+# Myriapoda: they are chilopoda observations: soil https://pubmed.ncbi.nlm.nih.gov/31963103/
+# Malacostraca: they are isopoda observations: soil  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6288264/#:~:text=Consequently%2C%20terrestrial%20isopods%20are%20considered,affect%20physical%20properties%20of%20soil.
+# Canopy: too broad <- NA
+# Leaf_litter: soil 
+
+# Input functional group
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Collembola"] <- "Soil"
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Edaphic_arthropods"] <- "Soil"
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Myriapoda"] <- "Soil"
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Malacostraca"] <- "Soil"
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Canopy"] <- "Soil"
+
+d$Functional_group[d$Phylum == "Arthropoda" &
+                     d$Class == "Leaf_litter"] <- "Soil"
+
+# By insect
+
+insect <- subset(d, d$Class == "Insecta")
+unique(insect$Order)
+unique(insect$Family)
+unique(insect$Genus_Species)
+
+# I want to see whether I gan get func.group info from thesis data set
+
+names(Data_extraction_spreadsheet_1)
+Data_extraction_spreadsheet_1 <- select(Data_extraction_spreadsheet_1, 
+                                        Class, Order, Family, Genus_Species,
+                                        Functional_group) # Tehsis data
+
+Data_extraction_spreadsheet_1 <- distinct(Data_extraction_spreadsheet_1)
+
+names(insect)
+insect <- select(insect, Order, Family, Genus_Species) # MMA data
+
+insect <- distinct(insect) # deduplicated mma data
 
 
 
