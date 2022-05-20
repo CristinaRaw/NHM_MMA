@@ -13,7 +13,7 @@ library(tidyverse)
 d <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
 x <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
 
-# First by kingdom
+# First by kingdom----
 
 unique(d$Kingdom)
 
@@ -37,7 +37,7 @@ d$Functional_group[d$Kingdom == "Plantae"] <- "Air_Climate_Freshwater_Soil_Extre
 
 d$Functionalr_group[d$Kingdom == "Forest_species"] <- "NA"
 
-# By animal
+# By animal----
 
 animal <- subset(d, d$Kingdom == "Animal")
 unique(animal$Phylum)
@@ -70,7 +70,7 @@ d$Functional_group[d$Kingdom == "Animal" &
 d$Functional_group[d$Kingdom == "Animal" &
                      d$Phylum == "Biodiversity"] <- "NA"
 
-# By arthropod
+# By arthropod----
 
 # Clean up
 
@@ -115,7 +115,7 @@ d$Functional_group[d$Phylum == "Arthropoda" &
 d$Functional_group[d$Phylum == "Arthropoda" &
                      d$Class == "Leaf_litter"] <- "Soil"
 
-# By insect
+# By insect----
 
 insect <- subset(d, d$Class == "Insecta")
 unique(insect$Order)
@@ -178,5 +178,6 @@ for (i in (1:698)){
 insect <- subset(d, d$Class == "Insecta")
 
 
+# Save ----
 
-
+write_xlsx(d, "Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
