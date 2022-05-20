@@ -5,7 +5,13 @@ rm(list = ls())
 # extracting the data from the included papers. To quicly obtain the functional groups infromation,
 # I am going to use the data set from my thesis, where I recorded arthropod's functional groups.
 
+# Functional groups from https://www.pnas.org/doi/10.1073/pnas.2010473117#t01
+
+library(readxl)
 library(tidyverse)
+
+d <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
+x <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
 
 # First by kingdom
 
@@ -116,19 +122,60 @@ unique(insect$Order)
 unique(insect$Family)
 unique(insect$Genus_Species)
 
-# I want to see whether I gan get func.group info from thesis data set
 
-names(Data_extraction_spreadsheet_1)
-Data_extraction_spreadsheet_1 <- select(Data_extraction_spreadsheet_1, 
-                                        Class, Order, Family, Genus_Species,
-                                        Functional_group) # Tehsis data
+# I am going to make and excel with  isnect the species names to input their functional
+# group information obtained from internet. Then I will load it and use it to 
+# input functional info in the data set. 
 
-Data_extraction_spreadsheet_1 <- distinct(Data_extraction_spreadsheet_1)
+library(writexl)
 
-names(insect)
-insect <- select(insect, Order, Family, Genus_Species) # MMA data
+  # Make excel with insect species names to input their functional group
 
-insect <- distinct(insect) # deduplicated mma data
+species <- as.data.frame(insect$Genus_Species)
+species <- drop_na(species)
+
+write_xlsx(species, "Outputs/species_to_funtional_groups.xlsx") 
+
+  # Load the species name with the functional groups
+
+functional_groups <- read_excel("Outputs/species_to_funtional_groups.xlsx")
+names(functional_groups)[1] <- "Genus_Species"
+
+
+  # Input functional groups in the main data frame using the species and functional
+  # group info from the species data frame
+
+d$Genus_Species[is.na(d$Genus_Species) == TRUE] <- "NA" # Make Na character so the 
+                                                        # for loop can work
+
+check <- cbind(d$Genus_Species, x$Genus_Species)  # Check it worked
+is.na(d$Genus_Species)
+
+unique(d$Genus_Species)                           # Make sure the species names are
+unique(functional_groups$`insect$Genus_Species`)  # the same in both df so the for 
+                                                  # loop will work
+
+d$Genus_Species[d$Genus_Species == "Pterostichus\r\nmelanarius"] <- "Pterostichus melanarius"
+d$Genus_Species[d$Genus_Species == "Brassicogethes \r\naeneus"] <- "Brassicogethes aeneus"
+
+functional_groups$Genus_Species[functional_groups$Genus_Species == "Brassicogethes \r\r\naeneus"] <- "Brassicogethes aeneus"
+functional_groups$Genus_Species[functional_groups$Genus_Species == "Pterostichus\r\r\nmelanarius"] <- "Pterostichus melanarius"
+
+  # For loop: when the species name in d data frame matches the species name in 
+  # the functional groups data frame, input the functional group data from the 
+  # functional group data frame into the d data fame
+
+for (i in (1:698)){
+  #browser()
+  for (j in (1:42)){
+    if (d$Genus_Species[i] == functional_groups$Genus_Species[j]){
+      d$Functional_group[i] <- functional_groups$Functional_group[j]
+    }}}
+ 
+  
+  # Check it worked 
+
+insect <- subset(d, d$Class == "Insecta")
 
 
 
