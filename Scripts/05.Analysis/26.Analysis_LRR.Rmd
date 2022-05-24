@@ -178,7 +178,7 @@ r.squaredGLMM(m2)
 r.squaredGLMM(m3)
 
 ```
-According to the model selection table, m0 is the best fit. Also looking at the R2, m0 has one of te highest marginal and conditional R2 (although only by a small margin of difference). Therefore, I will only include treatment as fixed effect.
+According to the model selection table, m0 is the best fit. Also looking at the R2, m0 has one of the highest marginal and conditional R2 (although only by a small margin of difference). Therefore, I will only include treatment as fixed effect.
 
 ### 2.4 Random effects
 
