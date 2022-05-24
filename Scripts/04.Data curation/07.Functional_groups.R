@@ -2,22 +2,21 @@ rm(list = ls())
 
 # Christina Raw 4/2/22
 # In this script I am going to fill out the functional groups from the data obtained by
-# extracting the data from the included papers. To quicly obtain the functional groups infromation,
-# I am going to use the data set from my thesis, where I recorded arthropod's functional groups.
+# extracting the data from the included papers.
 
 # Functional groups from https://www.pnas.org/doi/10.1073/pnas.2010473117#t01
 
 library(readxl)
 library(tidyverse)
+library(writexl)
 
 d <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
-x <- read_excel("Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
 
 # First by kingdom----
 
 unique(d$Kingdom)
 
-# Clean up
+  # Clean up
 
 d$Kingdom[d$Kingdom == "Mycorrhizal_fungi"] <- "Fungi"
 d$Kingdom[d$Kingdom == "Actinomyceta"] <- "Bacteria"
@@ -27,19 +26,28 @@ na.kingdom <- d %>%                        # The NA observations for kingdom
   subset(is.na(.$Kingdom == TRUE)) %>%     # already have the functional groups
   as.data.frame()
 
-# Input functional groups
+  # Input functional groups
 
 d$Functional_group[d$Kingdom == "Microbes"|
-                     d$Kingdom == "Fungi"|
-                     d$Kingdom == "Bacteria"] <- "Soil"
+                   d$Kingdom == "Fungi"|
+                   d$Kingdom == "Bacteria"] <- "Soil"
 
 d$Functional_group[d$Kingdom == "Plantae"] <- "Air_Climate_Freshwater_Soil_ExtremeEvents"
 
 d$Functionalr_group[d$Kingdom == "Forest_species"] <- "NA"
 
+
+
 # By animal----
 
+  # Clean up
+
+d$Phylum[d$Phylum == "Chordata"] <- "Vertebrates"
+
+  # Input functional groups
+
 animal <- subset(d, d$Kingdom == "Animal")
+
 unique(animal$Phylum)
 
 which(animal$Phylum == "Invertebate") 
@@ -51,8 +59,7 @@ which(animal$Phylum == "Chordata")
 # Nematoda: soil //www.nature.com/articles/s41597-020-0437-3
 # Annelida: soil
 # Insecta: by order
-# Vertebrates: too broad
-# Chordata: by class
+# Vertebrates: too broad <- NA
 # Biodiversity: too broad <- NA
 
 d$Functional_group[d$Kingdom == "Animal" &
@@ -70,9 +77,12 @@ d$Functional_group[d$Kingdom == "Animal" &
 d$Functional_group[d$Kingdom == "Animal" &
                      d$Phylum == "Biodiversity"] <- "NA"
 
+
+
+
 # By arthropod----
 
-# Clean up
+  # Clean up
 
 unique(animal$Phylum)
 arthropod <- subset(d, d$Phylum == "Arthropoda")
@@ -80,7 +90,7 @@ arthropod <- subset(d, d$Phylum == "Arthropoda")
 unique(arthropod$Class)
 d$Class[d$Class == "Araneae"] <- "Arachnida"
 
-# Input functional group
+  # Input functional group
 
 unique(arthropod$Class)
 myriapoda <- subset(arthropod, Class == "Miryapoda")
@@ -115,7 +125,19 @@ d$Functional_group[d$Phylum == "Arthropoda" &
 d$Functional_group[d$Phylum == "Arthropoda" &
                      d$Class == "Leaf_litter"] <- "Soil"
 
+
+
+
 # By insect----
+
+  # Clean up
+
+unique(d$Genus_Species)
+
+d$Genus_Species[d$Genus_Species == "N. brevicollis" ] <- "Nebria brevicollis"
+d$Family[d$Family == "Apiae"] <- "Apidae"
+d$Family[d$Family == "Whitefly"] <- "Aleyrodidae"
+d$Family[d$Family == "Mealybugs"] <- "Pseudococcidae"
 
 insect <- subset(d, d$Class == "Insecta")
 unique(insect$Order)
@@ -123,11 +145,10 @@ unique(insect$Family)
 unique(insect$Genus_Species)
 
 
-# I am going to make and excel with  isnect the species names to input their functional
+# I am going to make and excel with  insect the species names to input their functional
 # group information obtained from internet. Then I will load it and use it to 
 # input functional info in the data set. 
 
-library(writexl)
 
   # Make excel with insect species names to input their functional group
 
@@ -177,7 +198,74 @@ for (i in (1:698)){
 
 insect <- subset(d, d$Class == "Insecta")
 
+  # Add predator in Nebria brevicollis
+
+d$Functional_group[d$Genus_Species == "Nebria brevicollis"] <- "Predators"
+
+
+
+# Now that I have imputed the functional groups by species, I am going to try to 
+# input the functional groups for those observations that don't have taxonomic
+# information to species level
+
+insect <- subset(d, d$Class == "Insecta")
+
+is.na(insect$Genus_Species) # The NAs are characters
+
+na.insect <- subset(insect, insect$Genus_Species == "NA")
+unique(na.insect$Family)
+
+  # Apidae <- Pollination
+  # Culicidae <- Various
+  # Carabidae <- Various
+  # Delphacidae <- Pest
+  # Formicidae <- Soil, pollination and seeds, regulation of detrimental organisms
+  # Aleyrodidae <- Pest
+  # Pseudococcidae <- Pest
+
+# Input functional groups
+
+d$Functional_group[d$Family == "Apidae" &
+                     d$Genus_Species == "NA"] <- "Pollination_seeds"
+
+d$Functional_group[d$Family == "Culicidae" &
+                     d$Genus_Species == "NA"] <- "NA"
+
+d$Functional_group[d$Family == "Carabidae" &
+                     d$Genus_Species == "NA"] <- "NA"
+
+d$Functional_group[d$Family == "Delphacidae" &
+                     d$Genus_Species == "NA"] <- "Pest"
+
+d$Functional_group[d$Family == "Formicidae" &
+                     d$Genus_Species == "NA"] <- "Soil_PollinationSeeds_NaturalEnemy"
+
+
+d$Functional_group[d$Family == "Aleyrodidae" &
+                     d$Genus_Species == "NA"] <- "Pest"
+
+d$Functional_group[d$Family == "Pseudococcidae" &
+                     d$Genus_Species == "NA"] <- "Pest"
+
+
+# Make NAs characters----
+
+d$Functional_group[is.na(d$Functional_group == TRUE)] <- "NA"
+
+is.na(d$Functional_group) # Check it worked
+
+
+# Check everything worked----
+
+names(d)
+
+groups <- d %>% 
+  select(Kingdom, Phylum, Class, Order, Family, Genus_Species, Functional_group) %>% 
+  distinct() %>% 
+  subset(.$Functional_group == "NA")
+
 
 # Save ----
 
 write_xlsx(d, "Datasets/07.Excel_Dataset_to_model_LRR_LONG.xlsx")
+
