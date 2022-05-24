@@ -264,6 +264,13 @@ groups <- d %>%
   distinct() %>% 
   subset(.$Functional_group == "NA")
 
+unique(d$Functional_group)
+
+d$Functional_group[d$Functional_group == "soil"] <-"Soil"
+d$Functional_group[d$Functional_group == "pest"] <-"Pest"
+d$Functional_group[d$Functional_group == "natural enemy"] <-"Natural_enemy"
+d$Functional_group[d$Functional_group == "pollinator"] <-"Pollination_seeds"
+d$Functional_group[d$Functional_group == "plant"] <-"Air_Climate_Freshwater_Soil_ExtremeEvents"
 
 # Save ----
 
