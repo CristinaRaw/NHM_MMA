@@ -2,7 +2,9 @@
 title: "30.Taxon_analysis"
 author: "Christina Raw"
 date: "11/5/2022"
-output: html_document
+output: 
+  html_document:
+    toc: true
 ---
 
 Research supports that the response of biodiversity to agricultural systems can vary depending on the functional group. For example, natural enemies can decrease while pests can increase. Therefore, I am going to test the moderating effect of functional group on the response of biodiversity to agricultural systems. However, since I do not have all the functional group data in the data set (for now), but I do have data to taxon level, I am going to use taxon as proxy of functional group. 
@@ -15,14 +17,14 @@ library(blme) # For Bayesian analysis
 library(readxl) # For reading the excel data set
 library(here) # For specifying file paths
 library(knitr) # For making tables
-library(kableExtra)# for pretty rmd tables
-library(dplyr) # For some data wrangling
-library(tidyr) # For some data wrangling
-library(ggplot2) # For making cool plots
-library(MuMIn) # For model selection
+library(tidyverse) # For data wrangling
+library(sjPlot) # To make output tables
+library(sjmisc) # To make output tables
+library(sjlabelled) # To make output tables
+
 ```
 
-## 1. Take a look at the data
+# 1.  Load data, take a look and prepare data frame
 
 ```{r, include = FALSE}
 
@@ -31,84 +33,220 @@ d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
 str(d)
 d$Crop <- as.factor(d$Crop)
 d$Treatment <- as.factor(d$Treatment)
-d$magpie_class <- as.factor(d$magpie_class)
 d$Weight <- as.numeric(d$Weight)
-d$biodiveristy_metric_category <- as.factor(d$biodiveristy_metric_category)
+d$ID <- as.factor(d$ID)
 
 ```
 
-## Data per kingdom
-
-```{r, echo = FALSE}
-kingdom <- as.data.frame(table(d$Kingdom))
-colnames(kingdom) <- c("Treatment", "N_Observations")
-kingdom <- kingdom[order(kingdom$N_Observations, decreasing = TRUE),]
-
-kbl(kingdom, row.names = FALSE)
-```
+### 1.1. Data per kingdom
 
 Kingdom is not really informative, so I will do it by phylum
 
-## Data per taxon
-
 ```{r, echo = FALSE}
-# Data per taxon
-
-Phylum <- as.data.frame(table(d$Phylum))
-colnames(Phylum) <- c("Treatment", "N_Observations")
-Phylum <- Phylum[order(Phylum$N_Observations, decreasing = TRUE),]
-
-kbl(Phylum, row.names = FALSE)
+table(d$Kingdom)
 
 ```
 
-## Curate phylum names and collapse categories
+### 1.2. Data per taxon
+
+Curate phylum names and collapse categories
 
 ```{r}
-d$Phylum[d$Phylum == "Chordata"] <- "Vertebrates"
 d$Phylum[d$Phylum == "Insecta"] <- "Arthropoda"
 d$Phylum[d$Phylum == "Azotobacter"] <- "Microbes"
 d$Phylum[d$Phylum == "Microbial_community"] <- "Microbes"
 d$Phylum[d$Phylum == "Microbiall_community"] <- "Microbes"
 d$Phylum[d$Phylum == "Proteobacteria"] <- "Microbes"
+d$Phylum[d$Phylum == "Actinomycetes"] <- "Microbes"
 d$Phylum[d$Phylum == "Rhizosphere_actinobacteria"] <- "Rhizosphere_bacteria"
+d$Phylum[d$Phylum == "Rhyzosphere_microbes"] <- "Rhizosphere_bacteria"
 d$Phylum[d$Phylum == "Rhizosphere_Fungal_community"] <- "Rhizosphere_fungi"
 d$Phylum[d$Phylum == "Rhizosphere_Fungal_population"] <- "Rhizosphere_fungi"
-d$Phylum[d$Phylum == "Rhyzosphere_microbes"] <- "Rhizosphere_bacteria"
 d$Phylum[d$Phylum == "Weeds"] <- "Weed"
-
 
 Phylum <- as.data.frame(table(d$Phylum))
 colnames(Phylum) <- c("Treatment", "N_Observations")
 Phylum <- Phylum[order(Phylum$N_Observations, decreasing = TRUE),]
 
-kbl(Phylum, row.names = FALSE)
+kable(Phylum, row.names = FALSE)
+
+
+# Collapse organic and sustainable
+
+d$Treatment[d$Treatment == "Organic"] <- "Sustainable"
+
+# Include monoculture in conventional 
+
+d$Treatment[d$Treatment == "Monoculture"] <- "Conventional"
+
+# Make conventional the treatment reference level
+
+d$Treatment <- relevel(d$Treatment, ref = "Conventional")
 
 
 ```
 
-## Analysis
+### 1.3. Subset phylum with over 10 obs
 
 ```{r}
-m3 <- blmer(LRR ~ Treatment*Phylum + (1|ID), weights = Weight, data = d, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
 
-summary(m3)
+phylum_obs <- table(d$Phylum) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+d <- d[d$Phylum %in% phylum_obs$Var1, ]
 ```
 
-## Arthropods only
+
+# 2. Subset data by phylum
+
+```{r, message = FALSE}
+
+unique(d$Phylum)
+
+group <- unique(d$Phylum)
+
+group_list <- list() 
+
+for (i in group){
+data <- dplyr :: filter( d , Phylum == i)
+group_list[[i]] <- data
+}
+
+list2env(lapply(group_list, as.data.frame), .GlobalEnv)
+
+```
+
+# 3. Within each phylum data frame, subset and model
+
+Now that I have a separate data frame for each phylum, I will subset the agricultural systems that have more than 10 observations for that phylum. Then I will perform the linear models to see how functional groups respond to agricultural systems.
+
+### 3.1. Arthropoda
+
+```{r, echo = FALSE}
+table(Arthropoda$Treatment)
+```
+
 
 ```{r}
 
-bugs <- subset(d, d$Phylum == "Arthropoda" &
-                 (d$agricultural_system == "Conventional" | 
-                    d$agricultural_system == "Transgenic"))
+# Subset treatments that have more than 10 observations
 
-table(bugs$agricultural_system)
+treatment_obs <- table(Arthropoda$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
 
-model_bugs <- blmer(LRR ~ Treatment + (1|ID), weights = Weight, data = bugs, control = lmerControl(optimizer ="Nelder_Mead"), na.action = "na.omit")
+Arthropoda <- Arthropoda[Arthropoda$Treatment %in% treatment_obs$Var1, ]
 
-summary(model_bugs)
+# Model 
+
+arthropoda_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
+                     control = lmerControl(optimizer ="Nelder_Mead"), 
+                     data = Arthropoda)
 ```
+
+### 3.2. Microbes
+
+This phylum does not have any agricultural treatment with more than 10 observations, so I will skip it. 
+
+```{r, echo = FALSE}
+table(Microbes$Treatment)
+```
+
+
+### 3.3. Mucoromycota
+
+This phylum does not have enough data for analysis.
+
+### 3.4. Rhizosphere bacteria
+
+```{r}
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Rhizosphere_bacteria$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Rhizosphere_bacteria <- Rhizosphere_bacteria[Rhizosphere_bacteria$Treatment %in% treatment_obs$Var1, ]
+```
+
+All observations come from one single paper, so not very useful but I will perfomr a lm nonetheless.
+
+```{r}
+# Model 
+
+Rhizosphere_bacteria_model <- lm(LRR ~ Treatment, data = Rhizosphere_bacteria)
+
+```
+
+### 3.5. Rhizosphere fungi 
+
+This phylum does not have enough data for analysis.
+
+### 3.6. Vertebrates
+
+```{r, error = TRUE}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Vertebrates$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Vertebrates <- Vertebrates[Vertebrates$Treatment %in% treatment_obs$Var1, ]
+
+# Model 
+
+Vertebrates_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
+                     control = lmerControl(optimizer ="Nelder_Mead"), 
+                     data = Vertebrates)
+
+```
+
+The error occurs because the vertebrate data set has data for uniquely oil palm, so I will remove crop random effect.
+
+```{r}
+
+Vertebrates_model <- blmer(LRR ~ Treatment + (1|ID), 
+                     control = lmerControl(optimizer ="Nelder_Mead"), 
+                     data = Vertebrates)
+```
+
+### 3.7. Weeds
+
+
+```{r, error = FALSE}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Weed$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Weed <- Weed[Weed$Treatment %in% treatment_obs$Var1, ]
+
+# Model 
+
+Weed_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
+                     control = lmerControl(optimizer ="Nelder_Mead"), 
+                     data = Weed)
+
+```
+
+
+# 4. Model outputs
+
+### 4.1. Blmer models
+
+```{r, echo = FALSE}
+tab_model(arthropoda_model, Vertebrates_model, Weed_model,
+          dv.labels = c("Arthropoda", "Vertebrates", "Weeds"))
+```
+
+### 4.2. lm models
+
+```{r, echo = FALSE}
+tab_model(Rhizosphere_bacteria_model)
 
 ```
 
