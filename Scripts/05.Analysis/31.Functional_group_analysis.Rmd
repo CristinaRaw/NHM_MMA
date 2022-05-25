@@ -2,10 +2,12 @@
 title: "31.Functional_group_analysis"
 author: "Christina Raw"
 date: "24/5/2022"
-output: html_document
+output: 
+  html_document:
+    toc: true
 ---
 
-In this script I am going to analyse how biodiversity responds to agricultural systems but taking a closer look at what is happening at the functional group level. 
+In this script I am going to analyse how biodiversity responds to agricultural systems but taking a closer look at what is happening at the functional group level. Functional groups from [Brauman *et. al*, (2020)] (https://www.pnas.org/doi/10.1073/pnas.2010473117#t01)
 
 Steps:
 
@@ -13,18 +15,22 @@ Steps:
 2. Within each functional group data frame, subset the treatment levels that have more than 10 observations.
 3. Model
 
-## 1. Subset the data by funtional group
+# 1. Subset the data by funtional group
 
 ### 1.1. Load and prepare data frame
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 
 rm(list=ls())
 
 library(readxl)
 library(here)
-library(robustlmm)
 library(blme)
+library(knitr)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+
 
 d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
 
@@ -49,7 +55,7 @@ d$Treatment <- relevel(d$Treatment, ref = "Conventional")
 
 ### 1.2. Subset data by functional group
 
-```{r}
+```{r, message = FALSE}
 
 unique(d$Functional_group)
 
@@ -66,167 +72,174 @@ list2env(lapply(group_list, as.data.frame), .GlobalEnv)
 
 ```
 
-## 2. Within each functional group data frame, subset the treatment levels that have more than 10 observations.
+# 2. Within each functional group data frame, subset and model
 
-Now that I have a separate data frame for each functional group, I will subset the agricultural systems that have more than ten observations for that functional group. 
+Now that I have a separate data frame for each functional group, I will subset the agricultural systems that have more than ten observations for that functional group. Then I will perform the linear models to see how functional groups respond to agricultural systems.
 
-### a. Air Climate Freshwater Soil and Extreme events
+### 2.1. Air Climate Freshwater Soil and Extreme events
 
 This functional group is basically represented by plants. Heads up, the following code might be annoying due to group's super long name.
 
-```{r}
+```{r, echo = FALSE}
 table(Air_Climate_Freshwater_Soil_ExtremeEvents$Treatment)
-
-treatment_obs <- as.data.frame(table(Air_Climate_Freshwater_Soil_ExtremeEvents$Treatment))
-colnames(treatment_obs) <- c("Treatment", "N_Observations")
-treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
-
-treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
-
-Air_Climate_Freshwater_Soil_ExtremeEvents <- Air_Climate_Freshwater_Soil_ExtremeEvents[Air_Climate_Freshwater_Soil_ExtremeEvents$Treatment %in% treatment_obs$Treatment, ]
-```
-
-### b. Borer
-
-```{r}
-# Borer
-
-table(Borer$Treatment)
-
-```
-This functional group does not have any agricultural treatment whith more than 10 observations, so I will skip it. 
-
-### c. Natrual_enemies
-
-```{r}
-table(Natural_enemy$Treatment)
-
-treatment_obs <- as.data.frame(table(Natural_enemy$Treatment))
-colnames(treatment_obs) <- c("Treatment", "N_Observations")
-treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
-
-treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
-
-Natural_enemy <- Natural_enemy[Natural_enemy$Treatment %in% treatment_obs$Treatment, ]
-```
-
-### d. Pest
-
-```{r}
-table(Pest$Treatment)
-
-treatment_obs <- as.data.frame(table(Pest$Treatment))
-colnames(treatment_obs) <- c("Treatment", "N_Observations")
-treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
-
-treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
-
-Pest <- Pest[Pest$Treatment %in% treatment_obs$Treatment, ]
-
 ```
 
 
-### e. Pollination and seed dispersal
-
-```{r}
-table(Pollination_seeds$Treatment)
-```
-
-This functional group does not have any agricultural treatment whith more than 10 observations, so I will skip it. 
-
-### f. Predators 
-
 ```{r}
 
-table(Predators$Treatment)
+# Subset treatments that have more than 10 observations
 
-treatment_obs <- as.data.frame(table(Predators$Treatment))
-colnames(treatment_obs) <- c("Treatment", "N_Observations")
-treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
+treatment_obs <- table(Air_Climate_Freshwater_Soil_ExtremeEvents$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
 
-treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
+Air_Climate_Freshwater_Soil_ExtremeEvents <- Air_Climate_Freshwater_Soil_ExtremeEvents[Air_Climate_Freshwater_Soil_ExtremeEvents$Treatment %in% treatment_obs$Var1, ]
 
-Predators <- Predators[Predators$Treatment %in% treatment_obs$Treatment, ]
-
-```
-
-
-### g. Soil
-
-```{r}
-table(Soil$Treatment)
-
-treatment_obs <- as.data.frame(table(Soil$Treatment))
-colnames(treatment_obs) <- c("Treatment", "N_Observations")
-treatment_obs <- treatment_obs[order(treatment_obs$N_Observations, decreasing = TRUE),]
-
-treatment_obs <- subset(treatment_obs, treatment_obs$N_Observations >= 10)
-
-Soil <- Soil[Soil$Treatment %in% treatment_obs$Treatment, ]
-```
-
-
-### h. Soil and pollination
-
-Not enough observations
-
-## 2. Alaysis
-
-### a. Air climate Freshwater Soil Extreme Events (plants)
-
-```{r}
+# Model 
 
 plant_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                      control = lmerControl(optimizer ="Nelder_Mead"), 
                      data = Air_Climate_Freshwater_Soil_ExtremeEvents)
+```
 
-summary(plant_model)
+### 2.2. Borer
+
+This functional group does not have any agricultural treatment whith more than 10 observations, so I will skip it. 
+
+```{r, echo = FALSE}
+
+table(Borer$Treatment)
 
 ```
 
-### b. Natural enemies 
 
-```{r}
+### 2.3. Natrual_enemies
+
+```{r, echo = FALSE}
+table(Natural_enemy$Treatment)
+```
+
+
+```{r, error = TRUE}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Natural_enemy$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Natural_enemy <- Natural_enemy[Natural_enemy$Treatment %in% treatment_obs$Var1, ]
+
+# Model 
 
 enemy_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                      control = lmerControl(optimizer ="Nelder_Mead"), 
                      data = Natural_enemy)
-
-
 ```
-### c. Pest 
+
+I found on [this link](https://community.rstudio.com/t/error-in-eval-f-x-downdated-vtv-is-not-positive-definite/73846) an explanation to this error: "This error means that the variance due to random effects is pretty small and close to zero". I went to the data and all the values for natural enemy LRR are = 0. I went back to the papers to double check whether it was a mistake. It is not. In the papers, they found no differences in natural enemy biodiversity between conventional and transgenic agricultural systems. 
+
+So, for now, with this data set, I cannot study differences between agricultural systems for natural enemies.
+
+### 2.4. Pest
+
+```{r, echo = FALSE}
+
+table(Pest$Treatment)
+```
+
 
 ```{r}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Pest$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Pest <- Pest[Pest$Treatment %in% treatment_obs$Var1, ]
+
+# Model 
 
 pest_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                     control = lmerControl(optimizer ="Nelder_Mead"), 
                     data = Pest)
 
-summary(pest_model)
-
 ```
 
-### d. Predator 
 
-```{r}
+### 2.5. Pollination and seed dispersal
+
+This functional group does not have any agricultural treatment with more than 10 observations, so I will skip it. 
+
+```{r, echo= FALSE}
+table(Pollination_seeds$Treatment)
+```
+
+
+### 2.6. Predators 
+
+```{r, echo = FALSE}
+table(Predators$Treatment)
+```
+
+
+```{r, error = TRUE}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Predators$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Predators <- Predators[Predators$Treatment %in% treatment_obs$Var1, ]
+
+# Model
 
 predator_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                         control = lmerControl(optimizer ="Nelder_Mead"), 
                         data = Predators)
 
-summary(predator_model)
-
 ```
 
-### e. Soil 
+Here the same thing happens as with natural enemies, all the LRR observations are = 0. So, for now, with this data set, I cannot study differences between agricultural systems for predators.
+
+
+### 2.7. Soil
+
+```{r, echo = FALSE}
+table(Soil$Treatment)
+```
+
 
 ```{r}
+
+# Subset treatments that have more than 10 observations
+
+treatment_obs <- table(Soil$Treatment) %>% 
+  as.data.frame() %>% 
+  subset(.$Freq >= 10)
+
+Soil <- Soil[Soil$Treatment %in% treatment_obs$Var1, ]
+
+# Model 
 
 soil_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                         control = lmerControl(optimizer ="Nelder_Mead"), 
                         data = Soil)
 
-summary(soil_model)
+```
+
+
+### 2.8. Soil and pollination
+
+Not enough observations
+
+# 3. Model outputs
+
+```{r, echo = FALSE}
+tab_model(pest_model, plant_model, soil_model,
+          dv.labels = c("AirClimateFreshwaterSoilExtremeEvents", "Pests", "Creation and protection of Soil"))
 
 ```
 
