@@ -7,7 +7,7 @@ output:
     toc: true
 ---
 
-In this script I am going to analyse how biodiversity responds to agricultural systems but taking a closer look at what is happening at the functional group level. Functional groups from [Brauman *et. al*, (2020)] (https://www.pnas.org/doi/10.1073/pnas.2010473117#t01)
+In this script I am going to analyse how biodiversity responds to agricultural systems but taking a closer look at what is happening at the functional group level. Functional groups from [Brauman, *et. al*, (2020)](https://www.pnas.org/doi/10.1073/pnas.2010473117#t01)
 
 Steps:
 
@@ -15,21 +15,19 @@ Steps:
 2. Within each functional group data frame, subset the treatment levels that have more than 10 observations.
 3. Model
 
-# 1. Subset the data by funtional group
-
-### 1.1. Load and prepare data frame
+# 0. Load and prepare data frame
 
 ```{r, message = FALSE, warning = FALSE}
 
 rm(list=ls())
 
-library(readxl)
-library(here)
-library(blme)
-library(knitr)
-library(sjPlot)
-library(sjmisc)
-library(sjlabelled)
+library(readxl) # For reading the excel data set
+library(here) # For specifying file paths
+library(blme) # For Bayesian analysis
+library(knitr) # For making tables
+library(sjPlot) # For data wrangling
+library(sjmisc) # For data wrangling
+library(sjlabelled) # For data wrangling
 
 
 d <- read_excel(here("Datasets", "07.Excel_Dataset_to_model_LRR_LONG.xlsx"))
@@ -53,7 +51,7 @@ d$Treatment <- relevel(d$Treatment, ref = "Conventional")
 
 ```
 
-### 1.2. Subset data by functional group
+# 1. Subset data by functional group
 
 ```{r, message = FALSE}
 
@@ -104,7 +102,7 @@ plant_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop),
 
 ### 2.2. Borer
 
-This functional group does not have any agricultural treatment whith more than 10 observations, so I will skip it. 
+This functional group does not have any agricultural treatment with more than 10 observations, so I will skip it. 
 
 ```{r, echo = FALSE}
 
@@ -113,7 +111,7 @@ table(Borer$Treatment)
 ```
 
 
-### 2.3. Natrual_enemies
+### 2.3. Natrual enemies
 
 ```{r, echo = FALSE}
 table(Natural_enemy$Treatment)
