@@ -7,9 +7,11 @@ output:
     toc: true
 ---
 
-Research supports that the response of biodiversity to agricultural systems can vary depending on the functional group. For example, natural enemies can decrease while pests can increase. Therefore, I am going to test the moderating effect of functional group on the response of biodiversity to agricultural systems. However, since I do not have all the functional group data in the data set (for now), but I do have data to taxon level, I am going to use taxon as proxy of functional group. 
-
+Research supports that the response of biodiversity to agricultural systems can vary across taxa. In  this script I will test how different taxa respond to agricultural systems. 
+ 
 Also, since I already know there is influential data, I am going to directly do the model with the robust package.
+
+At the end of the script I make plots.
 
 ```{r, warning = FALSE, message = FALSE}
 
@@ -21,6 +23,7 @@ library(tidyverse) # For data wrangling
 library(sjPlot) # To make output tables
 library(sjmisc) # To make output tables
 library(sjlabelled) # To make output tables
+library(ggplot2) # To plot
 
 ```
 
@@ -143,6 +146,8 @@ Arthropoda <- Arthropoda[Arthropoda$Treatment %in% treatment_obs$Var1, ]
 arthropoda_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                      control = lmerControl(optimizer ="Nelder_Mead"), 
                      data = Arthropoda)
+
+
 ```
 
 ### 3.2. Microbes
@@ -170,7 +175,7 @@ treatment_obs <- table(Rhizosphere_bacteria$Treatment) %>%
 Rhizosphere_bacteria <- Rhizosphere_bacteria[Rhizosphere_bacteria$Treatment %in% treatment_obs$Var1, ]
 ```
 
-All observations come from one single paper, so not very useful but I will perfomr a lm nonetheless.
+All observations come from one single paper, so not very useful but I will perform a lm nonetheless.
 
 ```{r}
 # Model 
@@ -247,6 +252,17 @@ tab_model(arthropoda_model, Vertebrates_model, Weed_model,
 
 ```{r, echo = FALSE}
 tab_model(Rhizosphere_bacteria_model)
+
+```
+
+```{r, include = FALSE. eval = FASE}
+
+# I am doing this to plot make a script where I plot everything
+
+saveRDS(arthropoda_model,  here("Outputs/08.Results/arthropoda_model.rds"))
+saveRDS(Vertebrates_model,  here("Outputs/08.Results/Vertebrates_model.rds"))
+saveRDS(Weed_model,  here("Outputs/08.Results/Weed_model.rds"))
+saveRDS(Rhizosphere_bacteria_model,  here("Outputs/08.Results/Rhizosphere_bacteria_model.rds"))
 
 ```
 
