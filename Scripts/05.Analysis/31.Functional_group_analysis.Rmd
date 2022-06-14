@@ -98,6 +98,8 @@ Air_Climate_Freshwater_Soil_ExtremeEvents <- Air_Climate_Freshwater_Soil_Extreme
 plant_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                      control = lmerControl(optimizer ="Nelder_Mead"), 
                      data = Air_Climate_Freshwater_Soil_ExtremeEvents)
+summary(plant_model)
+
 ```
 
 ### 2.2. Borer
@@ -163,6 +165,7 @@ pest_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop),
                     control = lmerControl(optimizer ="Nelder_Mead"), 
                     data = Pest)
 
+summary(pest_model)
 ```
 
 
@@ -225,6 +228,12 @@ Soil <- Soil[Soil$Treatment %in% treatment_obs$Var1, ]
 soil_model <- blmer(LRR ~ Treatment + (1|ID) + (1|Crop), 
                         control = lmerControl(optimizer ="Nelder_Mead"), 
                         data = Soil)
+summary(soil_model)
+
+# Save model to make summary tables and plots
+
+saveRDS(soil_model,  here("Outputs/08.Results/soil_model.rds"))
+
 
 ```
 
@@ -237,7 +246,7 @@ Not enough observations
 
 ```{r, echo = FALSE}
 tab_model(pest_model, plant_model, soil_model,
-          dv.labels = c("AirClimateFreshwaterSoilExtremeEvents", "Pests", "Creation and protection of Soil"))
+          dv.labels = c("Pests", "AirClimateFreshwaterSoilExtremeEvents", "Creation and protection of Soil"))
 
 ```
 
