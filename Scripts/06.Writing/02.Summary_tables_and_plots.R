@@ -442,7 +442,7 @@ taxa_plot <- taxa %>%
 
 taxa_plot
 
-ggsave(taxa_plot, filename = "vertebrate_weed_plot.jpeg" ,device = "jpeg", width = 25, height = 16, unit = "cm")
+ggsave(taxa_plot, filename = "vertebrate_weed_plot.jpeg" ,device = "jpeg", width = 25, height = 5, unit = "cm")
 
 
 
@@ -566,7 +566,7 @@ func_group_plot <- func_group %>%
   geom_pointrange(size = 1) + 
   geom_hline(yintercept = 0, lty = 2) +  # add a dotted line at x=1 after flip
   coord_flip() +  # flip coordinates (puts labels on y axis)
-  labs(x = "Treatment", 
+  labs(X ="",
        y = "Mean percentage change (95% CI)") +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
@@ -575,12 +575,13 @@ func_group_plot <- func_group %>%
         axis.title = element_text(size = 20, face = "bold"),
         title = element_text(size = 25, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y =element_blank(), # I don't want axis label, it looks weird in the ppt
         legend.text = element_text(size = rel(1.5))) +
   scale_colour_manual(values=cbPalette)
 
 func_group_plot
 
-ggsave(func_group_plot, filename = "func_group_plot.jpeg" ,device = "jpeg", width = 25, height = 16, unit = "cm")
+ggsave(func_group_plot, filename = "func_group_plot.jpeg" ,device = "jpeg", width = 25, height = 5, unit = "cm")
 
 
  
