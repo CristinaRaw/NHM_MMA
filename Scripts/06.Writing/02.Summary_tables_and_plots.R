@@ -415,7 +415,7 @@ weed_coef$Taxon <- "Weeds"
 taxa <- rbind(vertebrates_coef, weed_coef)
 taxa$Treatment <- c("Primary vegetation", "Conservation")
 
-cbPalette <- c("#0072B2", "#CC79A7") # Color blind palette
+cbPalette <- c("#0072B2", "#E69F00") # Color blind palette
 
 taxa_plot <- taxa %>% 
   arrange(percentage_change)%>% 
