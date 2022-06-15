@@ -437,6 +437,7 @@ taxa_plot <- taxa %>%
         axis.title = element_text(size = 20, face = "bold"),
         title = element_text(size = 25, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y =element_blank(), # I don't want axis label, it looks weird in the ppt
         legend.text = element_text(size = rel(1.5))) +
   scale_colour_manual(values=cbPalette)
 
